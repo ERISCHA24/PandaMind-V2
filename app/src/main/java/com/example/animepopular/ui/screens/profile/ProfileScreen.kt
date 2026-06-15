@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.animepopular.util.Constants
 import com.example.animepopular.ui.theme.*
 import com.example.animepopular.viewmodel.ProfileViewModel
 
@@ -25,18 +24,16 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    onLogout: () -> Unit,
+    onNavigateToHistory: () -> Unit,   // ✅ NEW — tombol Reading History di ProfileScreen
+    onLogout: () -> Unit,              // ✅ NEW — navigasi ke Login setelah logout
     language: String = "en"
 ) {
     val username      by viewModel.username.collectAsStateWithLifecycle()
-    val isLoggedIn    by viewModel.isLoggedIn.collectAsStateWithLifecycle()
-    val isGuest       by viewModel.isGuest.collectAsStateWithLifecycle()
-    val userMode      by viewModel.userMode.collectAsStateWithLifecycle()
     val favoriteCount by viewModel.favoriteCount.collectAsStateWithLifecycle()
     val watchedCount  by viewModel.watchedCount.collectAsStateWithLifecycle()
     val reviewCount   by viewModel.reviewCount.collectAsStateWithLifecycle()
-    val historyCount  by viewModel.historyCount.collectAsStateWithLifecycle()
 
+    // Dialog konfirmasi logout
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -52,21 +49,23 @@ fun ProfileScreen(
             text = {
                 Text(
                     if (language == "id")
-                        "Kamu akan keluar. Data favorit & riwayat kamu tetap tersimpan untuk login berikutnya."
+                        "Kamu akan keluar dari akun PandaMind."
                     else
-                        "You'll be signed out. Your favorites & history are saved for your next login.",
-                    color = TextSecondary, style = MaterialTheme.typography.bodySmall
+                        "You will be signed out of PandaMind.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showLogoutDialog = false
                     viewModel.logout()
-                    onLogout()
+                    onLogout()          // ✅ navigasi ke Login setelah logout
                 }) {
                     Text(
                         if (language == "id") "Keluar" else "Sign Out",
-                        color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             },
@@ -85,108 +84,68 @@ fun ProfileScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Header ────────────────────────────────────────────────────────
+            // ── Profile Header ─────────────────────────────────────────────────
             Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp, horizontal = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 28.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = if (isGuest) SurfaceColor else AccentColor.copy(0.15f),
+                    color = AccentColor.copy(0.15f),
                     modifier = Modifier.size(80.dp)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(
-                            if (isGuest) Icons.Filled.PersonOutline else Icons.Filled.Person,
+                            Icons.Filled.Person,
                             contentDescription = null,
-                            tint = if (isGuest) TextSecondary else AccentColor,
+                            tint = AccentColor,
                             modifier = Modifier.size(48.dp)
                         )
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(username, color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-
-                // ── Mode Badge ─────────────────────────────────────────────────
-                Spacer(Modifier.height(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isGuest) SurfaceColor else AccentColor.copy(0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = if (isGuest) Icons.Filled.NoAccounts else Icons.Filled.VerifiedUser,
-                            contentDescription = null,
-                            tint = if (isGuest) TextSecondary else AccentColor,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(Modifier.width(5.dp))
-                        Text(
-                            text = if (isGuest)
-                                (if (language == "id") "Mode Tamu" else "Guest Mode")
-                            else
-                                (if (language == "id") "Mode Member" else "Member Mode"),
-                            color = if (isGuest) TextSecondary else AccentColor,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // ── Guest info strip ───────────────────────────────────────────
-                if (isGuest) {
-                    Spacer(Modifier.height(10.dp))
-                    Card(
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardBackground)
-                    ) {
-                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Info, null, tint = AccentColor, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                if (language == "id")
-                                    "Mode Tamu: favorit & riwayat tidak disimpan"
-                                else
-                                    "Guest mode: favorites & history are not saved",
-                                color = TextSecondary,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
-                }
+                Text(
+                    username,
+                    color = TextPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "MangaDex Member",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
-            // ── Stats ─────────────────────────────────────────────────────────
+            // ── Stats ──────────────────────────────────────────────────────────
             Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     StatItem(
-                        value = if (isGuest) "-" else watchedCount.toString(),
+                        value = watchedCount.toString(),
                         label = if (language == "id") "Dibaca" else "Read"
                     )
                     Divider(modifier = Modifier.width(1.dp).height(40.dp), color = DividerColor)
                     StatItem(
-                        value = if (isGuest) "-" else favoriteCount.toString(),
+                        value = favoriteCount.toString(),
                         label = if (language == "id") "Favorit" else "Favorite"
                     )
                     Divider(modifier = Modifier.width(1.dp).height(40.dp), color = DividerColor)
                     StatItem(
-                        value = if (isGuest) "-" else historyCount.toString(),
-                        label = if (language == "id") "Riwayat" else "History"
-                    )
-                    Divider(modifier = Modifier.width(1.dp).height(40.dp), color = DividerColor)
-                    StatItem(
-                        value = if (isGuest) "-" else reviewCount.toString(),
-                        label = "Review"
+                        value = reviewCount.toString(),
+                        label = if (language == "id") "Review" else "Reviews"
                     )
                 }
             }
@@ -196,13 +155,17 @@ fun ProfileScreen(
             // ── Preferensi ────────────────────────────────────────────────────
             SectionLabel(if (language == "id") "PREFERENSI" else "PREFERENCES")
             SettingsGroup {
-                SettingsRow(Icons.Filled.Settings,
-                    if (language == "id") "Pengaturan" else "Settings",
-                    onClick = onNavigateToSettings)
+                SettingsRow(
+                    icon    = Icons.Filled.Settings,
+                    label   = if (language == "id") "Pengaturan" else "Settings",
+                    onClick = onNavigateToSettings
+                )
                 SettingsDivider()
-                SettingsRow(Icons.Filled.Info,
-                    if (language == "id") "Tentang Aplikasi" else "About App",
-                    onClick = onNavigateToAbout)
+                SettingsRow(
+                    icon    = Icons.Filled.Info,
+                    label   = if (language == "id") "Tentang Aplikasi" else "About App",
+                    onClick = onNavigateToAbout
+                )
             }
 
             Spacer(Modifier.height(12.dp))
@@ -210,45 +173,48 @@ fun ProfileScreen(
             // ── Akun ──────────────────────────────────────────────────────────
             SectionLabel(if (language == "id") "AKUN" else "ACCOUNT")
             SettingsGroup {
-                SettingsRow(Icons.Filled.Notifications,
-                    if (language == "id") "Notifikasi" else "Notifications", onClick = {})
+                SettingsRow(
+                    icon    = Icons.Filled.Notifications,
+                    label   = if (language == "id") "Notifikasi" else "Notifications",
+                    onClick = {}
+                )
                 SettingsDivider()
-                SettingsRow(Icons.Filled.History,
-                    if (language == "id") "Riwayat Baca" else "Reading History", onClick = {})
+                // ✅ Reading History → navigasi ke HistoryScreen
+                SettingsRow(
+                    icon    = Icons.Filled.History,
+                    label   = if (language == "id") "Riwayat Baca" else "Reading History",
+                    onClick = onNavigateToHistory
+                )
                 SettingsDivider()
-                SettingsRow(Icons.Filled.Security,
-                    if (language == "id") "Izin Perangkat" else "Device Permissions", onClick = {})
+                SettingsRow(
+                    icon    = Icons.Filled.Security,
+                    label   = if (language == "id") "Izin Perangkat" else "Device Permissions",
+                    onClick = {}
+                )
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // ── Logout / Sign In ──────────────────────────────────────────────
+            // ── Logout ────────────────────────────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                shape    = RoundedCornerShape(14.dp),
+                colors   = CardDefaults.cardColors(containerColor = CardBackground)
             ) {
-                if (isGuest) {
-                    SettingsRow(
-                        icon = Icons.Filled.Login,
-                        label = if (language == "id") "Masuk ke Akun" else "Sign In",
-                        labelColor = AccentColor,
-                        onClick = onLogout
-                    )
-                } else {
-                    SettingsRow(
-                        icon = Icons.Filled.Logout,
-                        label = if (language == "id") "Keluar" else "Sign Out",
-                        labelColor = MaterialTheme.colorScheme.error,
-                        onClick = { showLogoutDialog = true }
-                    )
-                }
+                SettingsRow(
+                    icon       = Icons.Filled.Logout,
+                    label      = if (language == "id") "Keluar" else "Log Out",
+                    labelColor = MaterialTheme.colorScheme.error,
+                    onClick    = { showLogoutDialog = true }  // ✅ tampilkan dialog dulu
+                )
             }
 
             Spacer(Modifier.height(80.dp))
         }
     }
 }
+
+// ── Private helpers ───────────────────────────────────────────────────────────
 
 @Composable
 private fun StatItem(value: String, label: String) {
@@ -260,17 +226,24 @@ private fun StatItem(value: String, label: String) {
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = AccentColor, style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+    Text(
+        text,
+        color      = AccentColor,
+        style      = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        modifier   = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+    )
 }
 
 @Composable
 private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        content = { Column { content() } })
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        shape    = RoundedCornerShape(14.dp),
+        colors   = CardDefaults.cardColors(containerColor = CardBackground),
+        content  = { Column { content() } }
+    )
 }
 
 @Composable
@@ -280,16 +253,31 @@ private fun SettingsRow(
     labelColor: androidx.compose.ui.graphics.Color = TextPrimary,
     onClick: () -> Unit
 ) {
-    Surface(onClick = onClick, color = CardBackground, modifier = Modifier.fillMaxWidth()) {
+    Surface(
+        onClick  = onClick,
+        color    = CardBackground,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(14.dp))
-            Text(label, color = labelColor, style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f))
-            Icon(Icons.Filled.ChevronRight, null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+            Text(
+                label,
+                color    = labelColor,
+                style    = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint     = TextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

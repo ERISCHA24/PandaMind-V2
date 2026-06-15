@@ -41,7 +41,6 @@ fun NavGraph(container: AppContainer) {
     val isLoggedIn by profileVM.isLoggedIn.collectAsStateWithLifecycle()
     val isGuest    by profileVM.isGuest.collectAsStateWithLifecycle()
 
-    // Helper navigate ke login + clear back stack
     fun navigateToLogin() {
         navController.navigate(Screen.Login.route) {
             popUpTo(0) { inclusive = true }
@@ -88,19 +87,18 @@ fun NavGraph(container: AppContainer) {
             navController    = navController,
             startDestination = Screen.Login.route,
             modifier         = Modifier.padding(innerPadding),
-            enterTransition  = { slideInHorizontally(tween(280)) { it } + fadeIn(tween(280)) },
+            enterTransition  = { slideInHorizontally(tween(280)) { it }  + fadeIn(tween(280)) },
             exitTransition   = { slideOutHorizontally(tween(280)) { -it } + fadeOut(tween(280)) },
             popEnterTransition  = { slideInHorizontally(tween(280)) { -it } + fadeIn(tween(280)) },
-            popExitTransition   = { slideOutHorizontally(tween(280)) { it } + fadeOut(tween(280)) }
+            popExitTransition   = { slideOutHorizontally(tween(280)) { it }  + fadeOut(tween(280)) }
         ) {
 
             // ── Login ─────────────────────────────────────────────────────────
             composable(
-                route = Screen.Login.route,
+                route           = Screen.Login.route,
                 enterTransition = { fadeIn(tween(300)) },
                 exitTransition  = { fadeOut(tween(300)) }
             ) {
-                // Jika token tersimpan (USER mode) → skip Login
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn) {
                         navController.navigate(Screen.Home.route) {
@@ -109,13 +107,13 @@ fun NavGraph(container: AppContainer) {
                     }
                 }
                 LoginScreen(
-                    viewModel = profileVM,
+                    viewModel      = profileVM,
                     onLoginSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
-                    onSkip = {
+                    onSkip   = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -159,13 +157,13 @@ fun NavGraph(container: AppContainer) {
                 )
             }
 
-            // ── History ───────────────────────────────────────────────────────
-            composable(Screen.History.route) {
-                val vm: HistoryViewModel = viewModel(factory = container.historyViewModelFactory)
-                HistoryScreen(
+            // ── Top Rated ─────────────────────────────────────────────────────
+            // ✅ dikembalikan ke NavHost (sebelumnya dihapus di versi yang salah)
+            composable(Screen.TopRated.route) {
+                val vm: TopRatedViewModel = viewModel(factory = container.topRatedViewModelFactory)
+                TopRatedScreen(
                     viewModel          = vm,
                     onNavigateToDetail = { navController.navigate(Screen.Detail.createRoute(it)) },
-                    onNavigateToLogin  = { navigateToLogin() },
                     language           = language
                 )
             }
@@ -173,11 +171,27 @@ fun NavGraph(container: AppContainer) {
             // ── Profile ───────────────────────────────────────────────────────
             composable(Screen.Profile.route) {
                 ProfileScreen(
-                    viewModel            = profileVM,
-                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
-                    onNavigateToAbout    = { navController.navigate(Screen.About.route) },
-                    onLogout             = { navigateToLogin() },
-                    language             = language
+                    viewModel             = profileVM,
+                    onNavigateToSettings  = { navController.navigate(Screen.Settings.route) },
+                    onNavigateToAbout     = { navController.navigate(Screen.About.route) },
+                    // ✅ klik "Reading History" di Profile → buka HistoryScreen
+                    onNavigateToHistory   = { navController.navigate(Screen.History.route) },
+                    onLogout              = { navigateToLogin() },
+                    language              = language
+                )
+            }
+
+            // ── History ───────────────────────────────────────────────────────
+            // ✅ Hanya diakses dari ProfileScreen (bukan bottom nav lagi)
+            //    → perlu onBack agar pengguna bisa kembali ke Profile
+            composable(Screen.History.route) {
+                val vm: HistoryViewModel = viewModel(factory = container.historyViewModelFactory)
+                HistoryScreen(
+                    viewModel          = vm,
+                    onBackClick        = { navController.popBackStack() },   // ✅ NEW
+                    onNavigateToDetail = { navController.navigate(Screen.Detail.createRoute(it)) },
+                    onNavigateToLogin  = { navigateToLogin() },
+                    language           = language
                 )
             }
 
@@ -256,10 +270,7 @@ fun NavGraph(container: AppContainer) {
                     viewModel          = vm,
                     mangaTitle         = mangaTitle,
                     onNavigateToReader = { chapterId, chapterTitle ->
-                        navController.navigate(
-                            // ✅ Kirim mangaTitle + chapterTitle ke Reader untuk history
-                            Screen.Reader.createRoute(chapterId, mangaId, chapterTitle)
-                        )
+                        navController.navigate(Screen.Reader.createRoute(chapterId, mangaId, chapterTitle))
                     },
                     onBack             = { navController.popBackStack() },
                     language           = language
@@ -274,22 +285,22 @@ fun NavGraph(container: AppContainer) {
                     navArgument("mangaId")      { type = NavType.StringType },
                     navArgument("chapterTitle") { type = NavType.StringType }
                 ),
-                enterTransition     = { fadeIn(tween(200)) },
-                exitTransition      = { fadeOut(tween(200)) },
-                popEnterTransition  = { fadeIn(tween(200)) },
-                popExitTransition   = { fadeOut(tween(200)) }
+                enterTransition    = { fadeIn(tween(200)) },
+                exitTransition     = { fadeOut(tween(200)) },
+                popEnterTransition = { fadeIn(tween(200)) },
+                popExitTransition  = { fadeOut(tween(200)) }
             ) { backStack ->
                 val chapterId    = backStack.arguments?.getString("chapterId")    ?: return@composable
                 val mangaId      = backStack.arguments?.getString("mangaId")      ?: return@composable
                 val chapterTitle = backStack.arguments?.getString("chapterTitle")?.decodeFromRoute() ?: ""
                 val vm: ReaderViewModel = viewModel(factory = container.readerViewModelFactory)
                 ReaderScreen(
-                    viewModel      = vm,
-                    chapterId      = chapterId,
-                    mangaId        = mangaId,
-                    chapterTitle   = chapterTitle,
-                    onBack         = { navController.popBackStack() },
-                    language       = language
+                    viewModel    = vm,
+                    chapterId    = chapterId,
+                    mangaId      = mangaId,
+                    chapterTitle = chapterTitle,
+                    onBack       = { navController.popBackStack() },
+                    language     = language
                 )
             }
         }

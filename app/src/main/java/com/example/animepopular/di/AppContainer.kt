@@ -26,7 +26,8 @@ class AppContainer(context: Context) {
         mangaDao         = database.mangaDao(),
         favoriteDao      = database.favoriteDao(),
         watchedDao       = database.watchedDao(),
-        cacheMetadataDao = database.cacheMetadataDao()
+        cacheMetadataDao = database.cacheMetadataDao(),
+        preferences      = preferences               // ✅ NEW — required for userId in DAO calls
     )
 
     val favoritesRepository = FavoritesRepository(
@@ -45,7 +46,7 @@ class AppContainer(context: Context) {
         apiService         = apiService,
         atHomeService      = atHomeService,
         readingProgressDao = database.readingProgressDao(),
-        readingHistoryDao  = database.readingHistoryDao()   // ✅ NEW
+        readingHistoryDao  = database.readingHistoryDao()
     )
 
     // ── ViewModel Factories ───────────────────────────────────────────────────
@@ -57,7 +58,7 @@ class AppContainer(context: Context) {
     val genreViewModelFactory     = GenreViewModel.Factory(mangaRepository, favoritesRepository, preferences)
     val profileViewModelFactory   = ProfileViewModel.Factory(preferences, favoritesRepository, authRepository, chapterRepository)
     val readerViewModelFactory    = ReaderViewModel.Factory(chapterRepository, preferences)
-    val historyViewModelFactory   = HistoryViewModel.Factory(chapterRepository, preferences)  // ✅ NEW
+    val historyViewModelFactory   = HistoryViewModel.Factory(chapterRepository, preferences)
 
     fun chapterListFactory(mangaId: String) =
         ChapterListViewModel.Factory(chapterRepository, mangaId, preferences)

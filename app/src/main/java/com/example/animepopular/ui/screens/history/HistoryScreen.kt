@@ -1,12 +1,14 @@
 package com.example.animepopular.ui.screens.history
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +39,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToLogin: () -> Unit,
+    onBackClick: () -> Unit,   // ← NEW: back button callback
     language: String = "en"
 ) {
     val isGuest by viewModel.isGuest.collectAsStateWithLifecycle()
@@ -84,6 +87,15 @@ fun HistoryScreen(
         containerColor = BackgroundDark,
         topBar = {
             TopAppBar(
+                navigationIcon = {              // ← NEW: back button
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if (language == "id") "Kembali" else "Back",
+                            tint = TextPrimary
+                        )
+                    }
+                },
                 title = {
                     Column {
                         Text(
@@ -284,7 +296,7 @@ private fun HistoryCard(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     modifier = Modifier.height(30.dp),
                     shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentColor)
+                    border = BorderStroke(1.dp, AccentColor)
                 ) {
                     Text(
                         if (language == "id") "Buka Detail" else "Open Detail",

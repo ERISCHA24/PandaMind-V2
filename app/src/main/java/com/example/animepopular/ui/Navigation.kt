@@ -9,9 +9,9 @@ sealed class Screen(val route: String) {
     data object Home        : Screen("home")
     data object Search      : Screen("search")
     data object Favorites   : Screen("favorites")
-    data object TopRated    : Screen("top_rated")
+    data object TopRated    : Screen("top_rated")   // ✅ dikembalikan ke bottom nav
     data object Profile     : Screen("profile")
-    data object History     : Screen("history")                            // ✅ NEW
+    data object History     : Screen("history")     // tetap ada sebagai route, tapi bukan bottom nav
     data object Detail      : Screen("detail/{mangaId}") {
         fun createRoute(mangaId: String) = "detail/$mangaId"
     }
@@ -43,10 +43,11 @@ data class BottomNavItem(
     val labelId: String
 )
 
+// ✅ TopRated kembali ke posisi semula, History dihapus dari bottom nav
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home,      "Home",     Icons.Filled.Home,         "home"),
-    BottomNavItem(Screen.Search,    "Search",   Icons.Filled.Search,       "search"),
-    BottomNavItem(Screen.Favorites, "Favorite", Icons.Filled.Favorite,     "favorites"),
-    BottomNavItem(Screen.History,   "History",  Icons.Filled.History,      "history"),  // ✅ NEW
-    BottomNavItem(Screen.Profile,   "Profile",  Icons.Filled.Person,       "profile")
+    BottomNavItem(Screen.Home,      "Home",     Icons.Filled.Home,     "home"),
+    BottomNavItem(Screen.Search,    "Search",   Icons.Filled.Search,   "search"),
+    BottomNavItem(Screen.Favorites, "Favorite", Icons.Filled.Favorite, "favorites"),
+    BottomNavItem(Screen.TopRated,  "Top",      Icons.Filled.Star,     "top_rated"),
+    BottomNavItem(Screen.Profile,   "Profile",  Icons.Filled.Person,   "profile")
 )
