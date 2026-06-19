@@ -61,5 +61,5 @@ class AppContainer(context: Context) {
     val historyViewModelFactory   = HistoryViewModel.Factory(chapterRepository, preferences)
 
     fun chapterListFactory(mangaId: String) =
-        ChapterListViewModel.Factory(chapterRepository, mangaId, preferences)
+        ChapterListViewModel.Factory(chapterRepository, mangaRepository, mangaId, preferences)   // ✅ tambah mangaRepository
 }

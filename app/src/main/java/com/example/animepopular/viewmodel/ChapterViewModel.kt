@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.animepopular.data.preferences.AppPreferences
 import com.example.animepopular.data.remote.dto.ApiResult
 import com.example.animepopular.data.repository.ChapterRepository
+import com.example.animepopular.data.repository.MangaRepository   // ✅ NEW
 import com.example.animepopular.model.Chapter
 import com.example.animepopular.model.ChapterPages
 import com.example.animepopular.model.ReadingProgress
@@ -17,11 +18,10 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-// ── Chapter List VM ───────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChapterListViewModel(
     private val chapterRepository: ChapterRepository,
+    private val mangaRepository: MangaRepository,    // ✅ NEW
     private val mangaId: String,
     private val preferences: AppPreferences
 ) : ViewModel() {
@@ -36,6 +36,10 @@ class ChapterListViewModel(
         chapterRepository.getMangaProgress(mangaId, uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ✅ NEW — bahasa lain (selain en/id) yang tersedia untuk manga ini, diambil dari API/cache
+    private val _otherLanguages = MutableStateFlow<List<String>>(emptyList())
+    val otherLanguages: StateFlow<List<String>> = _otherLanguages.asStateFlow()
+
     private var offset = 0
     private val pageSize = 100
     private val allChapters = mutableListOf<Chapter>()
@@ -43,7 +47,24 @@ class ChapterListViewModel(
     private val _selectedLang = MutableStateFlow("en")
     val selectedLang: StateFlow<String> = _selectedLang.asStateFlow()
 
-    init { loadChapters() }
+    init {
+        loadChapters()
+        loadAvailableLanguages()   // ✅ NEW
+    }
+
+    // ✅ NEW
+    private fun loadAvailableLanguages() {
+        viewModelScope.launch {
+            when (val result = mangaRepository.getMangaById(mangaId)) {
+                is ApiResult.Success -> {
+                    _otherLanguages.value = result.data.availableLanguages
+                        .filter { it != "en" && it != "id" }
+                        .sorted()
+                }
+                else -> Unit
+            }
+        }
+    }
 
     fun loadChapters(reset: Boolean = false) {
         if (reset) { offset = 0; allChapters.clear() }
@@ -83,12 +104,13 @@ class ChapterListViewModel(
 
     class Factory(
         private val chapterRepository: ChapterRepository,
+        private val mangaRepository: MangaRepository,    // ✅ NEW
         private val mangaId: String,
         private val preferences: AppPreferences
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>) =
-            ChapterListViewModel(chapterRepository, mangaId, preferences) as T
+            ChapterListViewModel(chapterRepository, mangaRepository, mangaId, preferences) as T
     }
 }
 

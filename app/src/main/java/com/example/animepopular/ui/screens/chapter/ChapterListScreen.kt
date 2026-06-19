@@ -65,14 +65,57 @@ fun ChapterListScreen(
                     }
                 },
                 actions = {
-                    // Language filter
-                    val langs = listOf("en", "id", "ja")
-                    langs.forEach { lang ->
+                    // ── EN & ID — quick chip, selalu tampil ──────────────────────────
+                    val quickLangs = listOf("en", "id")
+                    quickLangs.forEach { lang ->
                         FilterChipSmall(
                             label = lang.uppercase(),
                             selected = selectedLang == lang,
                             onClick = { viewModel.setLanguage(lang) }
                         )
+                    }
+
+                    // ✅ NEW — Dropdown bahasa lain, diambil dinamis dari manga (mis. ja, zh, pt-br, dst)
+                    val otherLanguages by viewModel.otherLanguages.collectAsStateWithLifecycle()
+                    if (otherLanguages.isNotEmpty()) {
+                        var showLangMenu by remember { mutableStateOf(false) }
+                        val isOtherSelected = selectedLang !in quickLangs
+
+                        Box {
+                            IconButton(onClick = { showLangMenu = true }) {
+                                Icon(
+                                    Icons.Filled.Language,
+                                    contentDescription = if (language == "id") "Bahasa lain" else "Other languages",
+                                    tint = if (isOtherSelected) AccentColor else TextPrimary
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showLangMenu,
+                                onDismissRequest = { showLangMenu = false }
+                            ) {
+                                Text(
+                                    if (language == "id") "Bahasa lain" else "Other languages",
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                )
+                                otherLanguages.forEach { lang ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                lang.uppercase(),
+                                                color = if (selectedLang == lang) AccentColor else TextPrimary,
+                                                fontWeight = if (selectedLang == lang) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.setLanguage(lang)
+                                            showLangMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = ColorPrimary)

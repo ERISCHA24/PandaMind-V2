@@ -18,6 +18,7 @@ data class MangaEntity(
     val authorName: String,
     val followsCount: Int,
     val ratingAverage: Double,
+    val availableLanguages: String = "[]",
     val cachedAt: Long = System.currentTimeMillis()
 )
 

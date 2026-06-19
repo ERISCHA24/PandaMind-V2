@@ -16,7 +16,7 @@ import com.example.animepopular.data.local.entity.*
         ReadingHistoryEntity::class,
         ReviewReplyEntity::class
     ],
-    version = 5,   // ✅ bump: FavoriteEntity.description ditambahkan
+    version = 6,   // ✅ bump: MangaEntity.availableLanguages ditambahkan
     exportSchema = false
 )
 abstract class AnimeDatabase : RoomDatabase() {

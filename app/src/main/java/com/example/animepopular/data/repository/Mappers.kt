@@ -35,6 +35,8 @@ fun MangaDto.toEntity(stats: MangaStatistics? = null): MangaEntity {
         ?.attributes?.fileName ?: ""
     val tagNames      = attributes.tags.map { it.attributes.name["en"] ?: "" }.filter { it.isNotBlank() }
     val authorName    = toAuthorName()
+    // ✅ NEW — bahasa terjemahan yang tersedia langsung dari MangaDex
+    val langs         = attributes.availableTranslatedLanguages.filter { it.isNotBlank() }.distinct()
 
     return MangaEntity(
         id            = id,
@@ -48,15 +50,18 @@ fun MangaDto.toEntity(stats: MangaStatistics? = null): MangaEntity {
         tags          = mapperJson.encodeToString(tagNames),
         authorName    = authorName,
         followsCount  = stats?.follows ?: 0,
-        ratingAverage = stats?.rating?.bayesian ?: stats?.rating?.average ?: 0.0
+        ratingAverage = stats?.rating?.bayesian ?: stats?.rating?.average ?: 0.0,
+        availableLanguages = mapperJson.encodeToString(langs)   // ✅ NEW
     )
 }
-
-// ── MangaEntity → Manga ────────────────────────────────────────────────────────
 
 fun MangaEntity.toDomain(isFavorite: Boolean = false, isWatched: Boolean = false): Manga {
     val tagList = try {
         mapperJson.decodeFromString<List<String>>(tags)
+    } catch (e: Exception) { emptyList() }
+    // ✅ NEW
+    val langList = try {
+        mapperJson.decodeFromString<List<String>>(availableLanguages)
     } catch (e: Exception) { emptyList() }
     val coverUrl = if (coverFileName.isNotBlank())
         "${Constants.MANGADEX_COVER_URL}$id/$coverFileName${Constants.COVER_THUMB_512}"
@@ -75,7 +80,8 @@ fun MangaEntity.toDomain(isFavorite: Boolean = false, isWatched: Boolean = false
         followsCount  = followsCount,
         rating        = ratingAverage,
         isFavorite    = isFavorite,
-        isWatched     = isWatched
+        isWatched     = isWatched,
+        availableLanguages = langList   // ✅ NEW
     )
 }
 

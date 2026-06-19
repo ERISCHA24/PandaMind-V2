@@ -16,7 +16,8 @@ data class Manga(
     val followsCount: Int,
     val rating: Double,
     val isFavorite: Boolean = false,
-    val isWatched: Boolean = false
+    val isWatched: Boolean = false,
+    val availableLanguages: List<String> = emptyList()
 )
 
 // ── Review Domain Model ────────────────────────────────────────────────────────
