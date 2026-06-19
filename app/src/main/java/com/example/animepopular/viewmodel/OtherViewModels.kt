@@ -66,6 +66,10 @@ class TopRatedViewModel(
         favoritesRepository.getAllFavoriteIds(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    // ✅ Event snackbar
+    private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
+
     init { loadTopRated() }
 
     fun loadTopRated() {
@@ -82,7 +86,10 @@ class TopRatedViewModel(
     }
 
     fun toggleFavorite(manga: Manga) {
-        viewModelScope.launch { favoritesRepository.toggleFavorite(manga, userId.value) }
+        viewModelScope.launch {
+            val addedTitle = favoritesRepository.toggleFavorite(manga, userId.value)
+            if (addedTitle != null) _favoriteAddedEvent.emit(addedTitle)
+        }
     }
 
     class Factory(
@@ -127,6 +134,10 @@ class GenreViewModel(
         favoritesRepository.getAllFavoriteIds(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    // ✅ Event snackbar
+    private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
+
     init {
         loadTags()
         loadByGenre("Action")
@@ -160,7 +171,10 @@ class GenreViewModel(
     }
 
     fun toggleFavorite(manga: Manga) {
-        viewModelScope.launch { favoritesRepository.toggleFavorite(manga, userId.value) }
+        viewModelScope.launch {
+            val addedTitle = favoritesRepository.toggleFavorite(manga, userId.value)
+            if (addedTitle != null) _favoriteAddedEvent.emit(addedTitle)
+        }
     }
 
     class Factory(
@@ -254,7 +268,6 @@ class ProfileViewModel(
 
     fun logout() {
         viewModelScope.launch {
-            // Hapus data guest sebelum logout
             favoritesRepository.clearGuestData()
             chapterRepository.clearGuestData()
             authRepository.logout()

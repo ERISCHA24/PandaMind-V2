@@ -32,15 +32,28 @@ fun GenreScreen(
     val uiState       by viewModel.uiState.collectAsStateWithLifecycle()
     val tags          by viewModel.tags.collectAsStateWithLifecycle()
     val selectedGenre by viewModel.selectedGenre.collectAsStateWithLifecycle()
-    // ✅ Real-time favorite IDs
     val favoriteIds   by viewModel.favoriteIds.collectAsStateWithLifecycle()
 
     val displayGenres = if (tags.isNotEmpty()) tags.map { it.name }.take(15) else QUICK_GENRES
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ Snackbar saat manga ditambahkan ke favorit
+    LaunchedEffect(Unit) {
+        viewModel.favoriteAddedEvent.collect { title ->
+            val message = if (language == "id")
+                "\"$title\" ditambahkan ke Favorit ❤️"
+            else
+                "\"$title\" added to Favorites ❤️"
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+        }
+    }
 
     LaunchedEffect(initialGenre) { viewModel.loadByGenre(initialGenre) }
 
     Scaffold(
         containerColor = BackgroundDark,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(
                 modifier = Modifier
@@ -114,7 +127,7 @@ fun GenreScreen(
                                 manga = manga,
                                 onDetailClick = { onNavigateToDetail(manga.id) },
                                 onFavoriteToggle = { viewModel.toggleFavorite(manga) },
-                                isFavoriteOverride = manga.id in favoriteIds  // ✅
+                                isFavoriteOverride = manga.id in favoriteIds
                             )
                         }
                     }

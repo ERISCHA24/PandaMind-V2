@@ -42,8 +42,9 @@ class DetailViewModel(
     private val _isFavorite = MutableStateFlow(false)
     val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
 
-    private val _isWatched = MutableStateFlow(false)
-    val isWatched: StateFlow<Boolean> = _isWatched.asStateFlow()
+    // ✅ favoriteAddedEvent — untuk snackbar di DetailScreen
+    private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
 
     // ── New Review Form ───────────────────────────────────────────────────────
     private val _reviewUsername    = MutableStateFlow("")
@@ -93,15 +94,9 @@ class DetailViewModel(
             _manga.value = ApiResult.Loading
             _manga.value = mangaRepository.getMangaById(mangaId)
 
-            // Observe favorite & watched berdasarkan userId aktif
             userId.flatMapLatest { uid ->
                 favoritesRepository.isFavoriteFlow(mangaId, uid)
             }.collect { _isFavorite.value = it }
-        }
-        viewModelScope.launch {
-            userId.flatMapLatest { uid ->
-                favoritesRepository.isWatchedFlow(mangaId, uid)
-            }.collect { _isWatched.value = it }
         }
         viewModelScope.launch {
             favoritesRepository.getReviewsForManga(mangaId).collect { reviews ->
@@ -119,19 +114,16 @@ class DetailViewModel(
         }
     }
 
-    // ── Favorite / Watched ─────────────────────────────────────────────────────
+    // ── Favorite ───────────────────────────────────────────────────────────────
 
     fun toggleFavorite() {
         viewModelScope.launch {
             val m = (_manga.value as? ApiResult.Success)?.data ?: return@launch
-            favoritesRepository.toggleFavorite(m, userId.value)
-        }
-    }
-
-    fun toggleWatched() {
-        viewModelScope.launch {
-            val m = (_manga.value as? ApiResult.Success)?.data ?: return@launch
-            favoritesRepository.toggleWatched(m.id, m.title, userId.value)
+            val addedTitle = favoritesRepository.toggleFavorite(m, userId.value)
+            // ✅ emit snackbar hanya saat ditambahkan
+            if (addedTitle != null) {
+                _favoriteAddedEvent.emit(addedTitle)
+            }
         }
     }
 

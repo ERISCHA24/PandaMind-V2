@@ -24,7 +24,6 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    /** userId aktif — berubah saat login/logout */
     val userId: StateFlow<String> = preferences.userIdFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.GUEST_USER_ID)
 
@@ -32,7 +31,6 @@ class HomeViewModel(
         .map { it == Constants.USER_MODE_GUEST }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
-    /** favoriteIds otomatis switch saat userId berubah */
     val favoriteIds: StateFlow<Set<String>> = userId.flatMapLatest { uid ->
         favoritesRepository.getAllFavoriteIds(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
@@ -40,6 +38,10 @@ class HomeViewModel(
     val favoriteCount: StateFlow<Int> = userId.flatMapLatest { uid ->
         favoritesRepository.getFavoriteCount(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // ✅ Event snackbar — emit judul manga yang baru ditambahkan ke favorit
+    private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
 
     init { loadManga() }
 
@@ -62,7 +64,11 @@ class HomeViewModel(
 
     fun toggleFavorite(manga: Manga) {
         viewModelScope.launch {
-            favoritesRepository.toggleFavorite(manga, userId.value)
+            val addedTitle = favoritesRepository.toggleFavorite(manga, userId.value)
+            // ✅ Emit event hanya saat manga DITAMBAHKAN (bukan dihapus)
+            if (addedTitle != null) {
+                _favoriteAddedEvent.emit(addedTitle)
+            }
         }
     }
 

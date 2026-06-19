@@ -80,24 +80,26 @@ fun MangaEntity.toDomain(isFavorite: Boolean = false, isWatched: Boolean = false
 }
 
 // ── MangaEntity → FavoriteEntity ──────────────────────────────────────────────
-// ✅ userId added as parameter (defaults to guest so existing call-sites still compile)
+// ✅ description sekarang ikut disimpan
 
 fun MangaEntity.toFavoriteEntity(userId: String = Constants.GUEST_USER_ID) = FavoriteEntity(
     mangaId       = id,
-    userId        = userId,       // ✅
+    userId        = userId,
     title         = titleEn,
     coverFileName = coverFileName,
     status        = status,
-    rating        = ratingAverage
+    rating        = ratingAverage,
+    description   = descriptionEn   // ✅
 )
 
 // ── FavoriteEntity → Manga ─────────────────────────────────────────────────────
+// ✅ description sekarang diambil dari entity (sudah disimpan saat toggle)
 
 fun FavoriteEntity.toManga() = Manga(
     id            = mangaId,
     title         = title,
     titleJa       = title,
-    description   = "",
+    description   = description,   // ✅
     status        = status,
     year          = null,
     contentRating = "safe",
@@ -120,7 +122,7 @@ fun ReviewEntity.toDomain(): Review {
     return Review(
         id          = id,
         mangaId     = mangaId,
-        userId      = userId,     // ✅
+        userId      = userId,
         username    = username,
         reviewText  = reviewText,
         rating      = rating,
@@ -133,7 +135,7 @@ fun ReviewEntity.toDomain(): Review {
 fun Review.toEntity() = ReviewEntity(
     id          = id,
     mangaId     = mangaId,
-    userId      = userId,         // ✅
+    userId      = userId,
     username    = username,
     reviewText  = reviewText,
     rating      = rating,

@@ -27,42 +27,62 @@ class FavoritesRepository(
         favoriteDao.getAllFavorites(userId).map { list ->
             list.map { fav ->
                 Manga(
-                    id = fav.mangaId, title = fav.title, titleJa = fav.title,
-                    description = "", status = fav.status, year = null,
+                    id            = fav.mangaId,
+                    title         = fav.title,
+                    titleJa       = fav.title,
+                    // ✅ description dari Room (sudah disimpan saat ditambahkan)
+                    description   = fav.description,
+                    status        = fav.status,
+                    year          = null,
                     contentRating = "safe",
-                    coverUrl = buildCoverUrl(fav.mangaId, fav.coverFileName),
-                    tags = emptyList(), authorName = "", followsCount = 0,
-                    rating = fav.rating, isFavorite = true
+                    coverUrl      = buildCoverUrl(fav.mangaId, fav.coverFileName),
+                    tags          = emptyList(),
+                    authorName    = "",
+                    followsCount  = 0,
+                    rating        = fav.rating,
+                    isFavorite    = true
                 )
             }
         }
 
-    /** Set<String> mangaId yang difav userId — untuk tombol ❤ real-time */
     fun getAllFavoriteIds(userId: String): Flow<Set<String>> =
         favoriteDao.getFavoriteIds(userId).map { it.toSet() }
 
     fun isFavoriteFlow(mangaId: String, userId: String): Flow<Boolean> =
         favoriteDao.isFavoriteFlow(mangaId, userId)
 
-    suspend fun toggleFavorite(manga: Manga, userId: String) = withContext(Dispatchers.IO) {
-        if (favoriteDao.isFavorite(manga.id, userId)) {
-            favoriteDao.delete(manga.id, userId)
-            Timber.d("[$userId] Removed favorite: ${manga.title}")
-        } else {
-            val coverFileName = manga.coverUrl
-                .substringAfterLast("/")
-                .removeSuffix(".512.jpg")
-                .removeSuffix(".256.jpg")
-            favoriteDao.insert(
-                FavoriteEntity(
-                    mangaId = manga.id, userId = userId,
-                    title = manga.title, coverFileName = coverFileName,
-                    status = manga.status, rating = manga.rating
+    /**
+     * Toggle favorit.
+     * Return nilai: title manga jika BARU DITAMBAHKAN, null jika dihapus.
+     * Caller (ViewModel) menggunakan return value ini untuk menampilkan snackbar.
+     */
+    suspend fun toggleFavorite(manga: Manga, userId: String): String? =
+        withContext(Dispatchers.IO) {
+            if (favoriteDao.isFavorite(manga.id, userId)) {
+                favoriteDao.delete(manga.id, userId)
+                Timber.d("[$userId] Removed favorite: ${manga.title}")
+                null   // dihapus → tidak perlu snackbar "ditambahkan"
+            } else {
+                val coverFileName = manga.coverUrl
+                    .substringAfterLast("/")
+                    .removeSuffix(".512.jpg")
+                    .removeSuffix(".256.jpg")
+                favoriteDao.insert(
+                    FavoriteEntity(
+                        mangaId       = manga.id,
+                        userId        = userId,
+                        title         = manga.title,
+                        coverFileName = coverFileName,
+                        status        = manga.status,
+                        rating        = manga.rating,
+                        // ✅ simpan description agar FavoritesScreen bisa menampilkannya
+                        description   = manga.description
+                    )
                 )
-            )
-            Timber.d("[$userId] Added favorite: ${manga.title}")
+                Timber.d("[$userId] Added favorite: ${manga.title}")
+                manga.title   // ditambahkan → kembalikan title untuk snackbar
+            }
         }
-    }
 
     fun getFavoriteCount(userId: String): Flow<Int> =
         favoriteDao.getFavoriteCount(userId)
@@ -86,7 +106,6 @@ class FavoritesRepository(
 
     // ── Reviews ────────────────────────────────────────────────────────────────
 
-    /** Review untuk suatu manga tampil ke semua user (seperti forum publik) */
     fun getReviewsForManga(mangaId: String): Flow<List<Review>> =
         reviewDao.getReviewsForManga(mangaId).map { list -> list.map { it.toReviewDomain() } }
 
@@ -138,10 +157,6 @@ class FavoritesRepository(
 
     // ── Clear guest data ──────────────────────────────────────────────────────
 
-    /**
-     * Dipanggil saat guest keluar / login sebagai user.
-     * Menghapus SEMUA data yang tersimpan dengan userId = "__guest__".
-     */
     suspend fun clearGuestData() = withContext(Dispatchers.IO) {
         val guestId = Constants.GUEST_USER_ID
         favoriteDao.deleteAllForUser(guestId)

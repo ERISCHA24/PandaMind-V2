@@ -60,7 +60,6 @@ fun DetailScreen(
     val mangaState      by viewModel.manga.collectAsStateWithLifecycle()
     val reviews         by viewModel.reviews.collectAsStateWithLifecycle()
     val isFavorite      by viewModel.isFavorite.collectAsStateWithLifecycle()
-    val isWatched       by viewModel.isWatched.collectAsStateWithLifecycle()
     val repliesMap      by viewModel.repliesMap.collectAsStateWithLifecycle()
     val submitStatus    by viewModel.reviewSubmitStatus.collectAsStateWithLifecycle()
     val editingReview   by viewModel.editingReview.collectAsStateWithLifecycle()
@@ -86,6 +85,8 @@ fun DetailScreen(
     LaunchedEffect(mangaId) { viewModel.loadManga(mangaId) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ Snackbar untuk review submit
     LaunchedEffect(submitStatus) {
         when (submitStatus) {
             is ReviewSubmitStatus.Success -> {
@@ -97,6 +98,20 @@ fun DetailScreen(
                 viewModel.resetSubmitStatus()
             }
             else -> {}
+        }
+    }
+
+    // ✅ Snackbar notifikasi saat manga ditambahkan ke favorit
+    LaunchedEffect(Unit) {
+        viewModel.favoriteAddedEvent.collect { title ->
+            val message = if (language == "id")
+                "\"$title\" ditambahkan ke Favorit ❤️"
+            else
+                "\"$title\" added to Favorites ❤️"
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
         }
     }
 
@@ -178,6 +193,7 @@ fun DetailScreen(
                                 Brush.verticalGradient(colors = listOf(Color.Transparent, BackgroundDark))
                             )
                         )
+                        // ✅ Hanya tombol Favorit — tombol Watched dihapus
                         Row(
                             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -186,11 +202,6 @@ fun DetailScreen(
                                 icon = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                 tint = if (isFavorite) AccentColor else TextSecondary,
                                 onClick = { viewModel.toggleFavorite() }
-                            )
-                            ActionIconButton(
-                                icon = if (isWatched) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                tint = if (isWatched) AccentColor else TextSecondary,
-                                onClick = { viewModel.toggleWatched() }
                             )
                         }
                     }
@@ -226,6 +237,7 @@ fun DetailScreen(
                                 }
                             }
                             Divider(Modifier.padding(vertical = 10.dp), color = DividerColor)
+                            // ✅ Hanya Rating + Status + Content (Watched dihapus dari row ini)
                             Row(Modifier.fillMaxWidth()) {
                                 InfoItem("Rating", "★ ${"%.1f".format(manga.rating)}", RatingColor, Modifier.weight(1f))
                                 InfoItem("Status", manga.status.replaceFirstChar { it.uppercase() }, AccentColor, Modifier.weight(1f))
@@ -264,7 +276,7 @@ fun DetailScreen(
                         }
                     }
 
-                    // ── CARD 1: Review Pengguna (+ Edit & Reply section) ─────
+                    // ── CARD 1: Review Pengguna ─────────────────────────────
                     Card(
                         modifier  = Modifier
                             .fillMaxWidth()
@@ -275,8 +287,6 @@ fun DetailScreen(
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(Modifier.padding(16.dp)) {
-
-                            // Header
                             Text(
                                 if (language == "id") "👥 Review Pengguna" else "👥 User Reviews",
                                 color      = TextPrimary,
@@ -290,7 +300,6 @@ fun DetailScreen(
                                 modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
                             )
 
-                            // Daftar review
                             reviews.forEach { review ->
                                 val replies = repliesMap[review.id] ?: emptyList()
                                 ReviewCard(
@@ -316,13 +325,9 @@ fun DetailScreen(
                                 )
                             }
 
-                            // ── Edit Review (muncul di dalam Card ini) ────────
                             AnimatedVisibility(visible = editingReview != null) {
                                 Column {
-                                    Divider(
-                                        Modifier.padding(vertical = 12.dp),
-                                        color = DividerColor
-                                    )
+                                    Divider(Modifier.padding(vertical = 12.dp), color = DividerColor)
                                     EditReviewSection(
                                         editText      = editText,
                                         editRating    = editRating,
@@ -350,13 +355,9 @@ fun DetailScreen(
                                 }
                             }
 
-                            // ── Reply Form (muncul di dalam Card ini) ─────────
                             AnimatedVisibility(visible = replyingToId != null) {
                                 Column {
-                                    Divider(
-                                        Modifier.padding(vertical = 12.dp),
-                                        color = DividerColor
-                                    )
+                                    Divider(Modifier.padding(vertical = 12.dp), color = DividerColor)
                                     ReplySection(
                                         replyUsername    = replyUsername,
                                         replyText        = replyText,
@@ -384,8 +385,6 @@ fun DetailScreen(
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Column(Modifier.padding(16.dp)) {
-
-                            // Header
                             Text(
                                 if (language == "id") "✍️ Tulis Review" else "✍️ Write a Review",
                                 color      = TextPrimary,
@@ -394,7 +393,6 @@ fun DetailScreen(
                                 modifier   = Modifier.padding(bottom = 14.dp)
                             )
 
-                            // Username
                             OutlinedTextField(
                                 value         = username,
                                 onValueChange = viewModel::onUsernameChange,
@@ -407,7 +405,6 @@ fun DetailScreen(
 
                             Spacer(Modifier.height(10.dp))
 
-                            // Review text
                             OutlinedTextField(
                                 value         = reviewText,
                                 onValueChange = viewModel::onReviewTextChange,
@@ -427,7 +424,6 @@ fun DetailScreen(
 
                             Spacer(Modifier.height(12.dp))
 
-                            // Rating
                             Text(
                                 if (language == "id") "Rating kamu:" else "Your rating:",
                                 color = TextSecondary,
@@ -441,7 +437,6 @@ fun DetailScreen(
 
                             Spacer(Modifier.height(12.dp))
 
-                            // Media upload
                             Text(
                                 if (language == "id") "📷 Tambah Gambar / GIF" else "📷 Add Images / GIF",
                                 color      = TextPrimary,
@@ -469,7 +464,6 @@ fun DetailScreen(
                                 }
                             }
 
-                            // Preview media yang dipilih
                             AnimatedVisibility(visible = selectedImages.isNotEmpty() || selectedGif != null) {
                                 Column {
                                     Spacer(Modifier.height(10.dp))
@@ -492,15 +486,12 @@ fun DetailScreen(
 
                             Spacer(Modifier.height(16.dp))
 
-                            // Tombol submit
                             Button(
                                 onClick  = { viewModel.submitReview(context) },
                                 enabled  = submitStatus !is ReviewSubmitStatus.Loading,
                                 colors   = ButtonDefaults.buttonColors(containerColor = AccentColor),
                                 shape    = RoundedCornerShape(24.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
                                 if (submitStatus is ReviewSubmitStatus.Loading) {
                                     CircularProgressIndicator(
@@ -509,11 +500,7 @@ fun DetailScreen(
                                         strokeWidth = 2.dp
                                     )
                                 } else {
-                                    Icon(
-                                        Icons.Filled.Send,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Icon(Icons.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         if (language == "id") "Kirim Review" else "Submit Review",
@@ -532,7 +519,7 @@ fun DetailScreen(
     }
 }
 
-// ── Review Card with Edit/Delete/Reply ───────────────────────────────────────
+// ── Review Card ───────────────────────────────────────────────────────────────
 
 @Composable
 private fun ReviewCard(
@@ -552,7 +539,6 @@ private fun ReviewCard(
 
     Surface(shape = RoundedCornerShape(12.dp), color = SurfaceColor, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
-            // Header row
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Person, null, tint = AccentColor, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
@@ -564,10 +550,7 @@ private fun ReviewCard(
                     IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
                         Icon(Icons.Filled.MoreVert, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                     }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                    ) {
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(
                             text = { Text(if (language == "id") "Edit" else "Edit", color = TextPrimary) },
                             leadingIcon = { Icon(Icons.Filled.Edit, null, tint = AccentColor) },
@@ -585,7 +568,6 @@ private fun ReviewCard(
             Spacer(Modifier.height(4.dp))
             Text(review.reviewText, color = TextPrimary, style = MaterialTheme.typography.bodySmall, lineHeight = 18.sp)
 
-            // Images
             val allMedia = review.imagePaths + listOfNotNull(review.gifPath)
             if (allMedia.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
@@ -618,28 +600,25 @@ private fun ReviewCard(
 
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(sdf.format(Date(review.timestamp)), color = TextSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                // Reply button
+                Text(sdf.format(Date(review.timestamp)), color = TextSecondary,
+                    style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                 TextButton(onClick = onReply, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
                     Icon(Icons.Filled.Reply, null, tint = AccentColor, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(if (language == "id") "Balas" else "Reply", color = AccentColor, style = MaterialTheme.typography.labelSmall)
+                    Text(if (language == "id") "Balas" else "Reply", color = AccentColor,
+                        style = MaterialTheme.typography.labelSmall)
                 }
                 if (replies.isNotEmpty()) {
-                    TextButton(onClick = { showReplies = !showReplies }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
-                        Text(
-                            "${replies.size} ${if (language == "id") "balasan" else "replies"}",
-                            color = TextSecondary, style = MaterialTheme.typography.labelSmall
-                        )
-                        Icon(
-                            if (showReplies) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                            null, tint = TextSecondary, modifier = Modifier.size(14.dp)
-                        )
+                    TextButton(onClick = { showReplies = !showReplies },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
+                        Text("${replies.size} ${if (language == "id") "balasan" else "replies"}",
+                            color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Icon(if (showReplies) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                     }
                 }
             }
 
-            // Replies
             AnimatedVisibility(showReplies && replies.isNotEmpty()) {
                 Column(modifier = Modifier.padding(start = 16.dp, top = 4.dp)) {
                     Divider(Modifier.padding(bottom = 8.dp), color = DividerColor)
@@ -657,12 +636,14 @@ private fun ReviewCard(
 private fun ReplyItem(reply: ReviewReply, language: String, onDelete: () -> Unit) {
     val sdf = remember { SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()) }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Icon(Icons.Filled.SubdirectoryArrowRight, null, tint = DividerColor, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+        Icon(Icons.Filled.SubdirectoryArrowRight, null, tint = DividerColor,
+            modifier = Modifier.size(16.dp).padding(top = 2.dp))
         Spacer(Modifier.width(6.dp))
         Surface(shape = RoundedCornerShape(8.dp), color = CardBackground, modifier = Modifier.weight(1f)) {
             Row(Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(reply.username, color = AccentColor, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    Text(reply.username, color = AccentColor, style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold)
                     Text(reply.replyText, color = TextPrimary, style = MaterialTheme.typography.bodySmall)
                     Text(sdf.format(Date(reply.timestamp)), color = TextSecondary, fontSize = 10.sp)
                 }
@@ -698,41 +679,32 @@ private fun EditReviewSection(
                 Text(if (language == "id") "Batal" else "Cancel", color = TextSecondary)
             }
         }
-        OutlinedTextField(
-            value = editText, onValueChange = onTextChange,
+        OutlinedTextField(value = editText, onValueChange = onTextChange,
             label = { Text("Review", color = TextSecondary) },
             minLines = 3, maxLines = 6, colors = tfColors(),
-            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()
-        )
+            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         RatingBar(rating = editRating, onRatingChange = onRatingChange, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        // Existing images (read-only preview)
         if (existingPaths.isNotEmpty()) {
-            Text(if (language == "id") "Gambar saat ini:" else "Current images:", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Text(if (language == "id") "Gambar saat ini:" else "Current images:",
+                color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 4.dp)) {
                 items(existingPaths) { path ->
                     val f = File(path)
                     if (f.exists()) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context).data(f).build(),
-                            imageLoader = gifLoader,
-                            contentDescription = null, contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp))
-                        )
+                        AsyncImage(model = ImageRequest.Builder(context).data(f).build(),
+                            imageLoader = gifLoader, contentDescription = null, contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)))
                     }
                 }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MediaPickerButton(
-                label = if (language == "id") "Tambah Gambar" else "Add Images",
-                icon = Icons.Filled.Image, active = editImages.isNotEmpty(), onClick = onPickImages
-            )
-            MediaPickerButton(
-                label = if (editGif != null) "GIF ✓" else "GIF",
-                icon = Icons.Filled.Gif, active = editGif != null, onClick = onPickGif
-            )
+            MediaPickerButton(label = if (language == "id") "Tambah Gambar" else "Add Images",
+                icon = Icons.Filled.Image, active = editImages.isNotEmpty(), onClick = onPickImages)
+            MediaPickerButton(label = if (editGif != null) "GIF ✓" else "GIF",
+                icon = Icons.Filled.Gif, active = editGif != null, onClick = onPickGif)
         }
         if (editImages.isNotEmpty() || editGif != null) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 6.dp)) {
@@ -741,11 +713,9 @@ private fun EditReviewSection(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Button(
-            onClick = onSubmit, enabled = submitStatus !is ReviewSubmitStatus.Loading,
+        Button(onClick = onSubmit, enabled = submitStatus !is ReviewSubmitStatus.Loading,
             colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
-            shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(42.dp)
-        ) {
+            shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(42.dp)) {
             Text(if (language == "id") "Simpan Perubahan" else "Save Changes", fontWeight = FontWeight.Bold)
         }
     }
@@ -768,25 +738,19 @@ private fun ReplySection(
                 Text(if (language == "id") "Batal" else "Cancel", color = TextSecondary)
             }
         }
-        OutlinedTextField(
-            value = replyUsername, onValueChange = onUsernameChange,
+        OutlinedTextField(value = replyUsername, onValueChange = onUsernameChange,
             label = { Text("Username", color = TextSecondary) },
             singleLine = true, colors = tfColors(),
-            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()
-        )
+            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = replyText, onValueChange = onTextChange,
+        OutlinedTextField(value = replyText, onValueChange = onTextChange,
             label = { Text(if (language == "id") "Balasan..." else "Reply...", color = TextSecondary) },
             minLines = 2, maxLines = 4, colors = tfColors(),
-            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()
-        )
+            shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = onSubmit,
+        Button(onClick = onSubmit,
             colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
-            shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(42.dp)
-        ) {
+            shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().height(42.dp)) {
             Text(if (language == "id") "Kirim Balasan" else "Send Reply", fontWeight = FontWeight.Bold)
         }
     }
@@ -795,7 +759,11 @@ private fun ReplySection(
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 @Composable
-private fun ActionIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+private fun ActionIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
     IconButton(
         onClick = onClick,
         modifier = Modifier.size(44.dp).clip(CircleShape).background(SurfaceColor.copy(0.8f))
@@ -812,12 +780,15 @@ private fun InfoItem(label: String, value: String, valueColor: Color, modifier: 
 }
 
 @Composable
-private fun MediaPickerButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, active: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
+private fun MediaPickerButton(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(onClick = onClick,
         border = BorderStroke(1.dp, if (active) AccentColor else DividerColor),
-        shape = RoundedCornerShape(12.dp)
-    ) {
+        shape = RoundedCornerShape(12.dp)) {
         Icon(icon, null, tint = if (active) AccentColor else TextSecondary, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(4.dp))
         Text(label, color = if (active) AccentColor else TextSecondary, style = MaterialTheme.typography.labelSmall)
@@ -835,14 +806,17 @@ private fun SelectedMediaThumb(uri: Uri, imageLoader: ImageLoader, isGif: Boolea
                 .border(1.5.dp, if (isGif) AccentColor else DividerColor, RoundedCornerShape(10.dp))
         )
         if (isGif) {
-            Surface(color = AccentColor, shape = RoundedCornerShape(4.dp), modifier = Modifier.align(Alignment.BottomStart).padding(3.dp)) {
-                Text("GIF", color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+            Surface(color = AccentColor, shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.align(Alignment.BottomStart).padding(3.dp)) {
+                Text("GIF", color = Color.White, style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
             }
         }
-        IconButton(
-            onClick = onRemove,
-            modifier = Modifier.size(20.dp).align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp).clip(CircleShape).background(Color.Black.copy(0.7f))
-        ) { Icon(Icons.Filled.Close, null, tint = Color.White, modifier = Modifier.size(12.dp)) }
+        IconButton(onClick = onRemove,
+            modifier = Modifier.size(20.dp).align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp)
+                .clip(CircleShape).background(Color.Black.copy(0.7f))) {
+            Icon(Icons.Filled.Close, null, tint = Color.White, modifier = Modifier.size(12.dp))
+        }
     }
 }
 

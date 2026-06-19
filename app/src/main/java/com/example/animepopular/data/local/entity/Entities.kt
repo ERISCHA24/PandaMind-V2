@@ -26,15 +26,17 @@ data class MangaEntity(
 
 @Entity(
     tableName = "favorites",
-    primaryKeys = ["mangaId", "userId"]   // composite PK: satu manga bisa difav oleh banyak user
+    primaryKeys = ["mangaId", "userId"]
 )
 data class FavoriteEntity(
     val mangaId: String,
-    val userId: String,                   // ✅ NEW
+    val userId: String,
     val title: String,
     val coverFileName: String,
     val status: String,
     val rating: Double,
+    // ✅ Field baru: deskripsi manga untuk ditampilkan di halaman favorit
+    val description: String = "",
     val addedAt: Long = System.currentTimeMillis()
 )
 
@@ -42,24 +44,23 @@ data class FavoriteEntity(
 
 @Entity(
     tableName = "watched",
-    primaryKeys = ["mangaId", "userId"]   // composite PK
+    primaryKeys = ["mangaId", "userId"]
 )
 data class WatchedEntity(
     val mangaId: String,
-    val userId: String,                   // ✅ NEW
+    val userId: String,
     val title: String,
     val markedAt: Long = System.currentTimeMillis()
 )
 
 // ── Review Entity ─────────────────────────────────────────────────────────────
-// Review tetap autoGenerate id, tapi filter by userId
 
 @Entity(tableName = "reviews")
 data class ReviewEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val mangaId: String,
-    val userId: String,                   // ✅ NEW — pemilik review
-    val username: String,                 // display name
+    val userId: String,
+    val username: String,
     val reviewText: String,
     val rating: Float,
     val timestamp: Long = System.currentTimeMillis(),
@@ -77,15 +78,14 @@ data class CacheMetadataEntity(
 )
 
 // ── Reading Progress Entity ───────────────────────────────────────────────────
-// Menyimpan halaman terakhir dibaca per chapter per user
 
 @Entity(
     tableName = "reading_progress",
-    primaryKeys = ["chapterId", "userId"]  // composite PK
+    primaryKeys = ["chapterId", "userId"]
 )
 data class ReadingProgressEntity(
     val chapterId: String,
-    val userId: String,                    // ✅ NEW
+    val userId: String,
     val mangaId: String,
     val currentPage: Int = 0,
     val totalPages: Int = 0,
@@ -93,7 +93,6 @@ data class ReadingProgressEntity(
 )
 
 // ── Reading History Entity ────────────────────────────────────────────────────
-// ✅ NEW — Mencatat manga yang pernah dibuka/dibaca oleh user
 
 @Entity(
     tableName = "reading_history",
@@ -117,7 +116,7 @@ data class ReviewReplyEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val reviewId: Long,
     val mangaId: String,
-    val userId: String,                   // ✅ NEW — pemilik reply
+    val userId: String,
     val username: String,
     val replyText: String,
     val timestamp: Long = System.currentTimeMillis()

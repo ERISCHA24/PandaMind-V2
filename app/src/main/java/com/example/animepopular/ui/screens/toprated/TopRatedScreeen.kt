@@ -24,11 +24,24 @@ fun TopRatedScreen(
     language: String = "en"
 ) {
     val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
-    // ✅ Real-time favorite IDs
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ Snackbar saat manga ditambahkan ke favorit
+    LaunchedEffect(Unit) {
+        viewModel.favoriteAddedEvent.collect { title ->
+            val message = if (language == "id")
+                "\"$title\" ditambahkan ke Favorit ❤️"
+            else
+                "\"$title\" added to Favorites ❤️"
+            snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+        }
+    }
 
     Scaffold(
         containerColor = BackgroundDark,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 Text(
@@ -59,7 +72,6 @@ fun TopRatedScreen(
                                 .padding(start = 12.dp, top = if (index == 0) 8.dp else 0.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Rank badge
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = when (index) {
@@ -84,7 +96,7 @@ fun TopRatedScreen(
                                 onDetailClick = { onNavigateToDetail(manga.id) },
                                 onFavoriteToggle = { viewModel.toggleFavorite(manga) },
                                 modifier = Modifier.weight(1f),
-                                isFavoriteOverride = manga.id in favoriteIds  // ✅
+                                isFavoriteOverride = manga.id in favoriteIds
                             )
                         }
                     }

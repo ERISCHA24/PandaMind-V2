@@ -38,6 +38,10 @@ class SearchViewModel(
         favoritesRepository.getAllFavoriteIds(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    // ✅ Event snackbar — emit judul manga yang baru ditambahkan
+    private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
+
     init {
         viewModelScope.launch {
             _searchQuery
@@ -64,7 +68,8 @@ class SearchViewModel(
 
     fun toggleFavorite(manga: Manga) {
         viewModelScope.launch {
-            favoritesRepository.toggleFavorite(manga, userId.value)
+            val addedTitle = favoritesRepository.toggleFavorite(manga, userId.value)
+            if (addedTitle != null) _favoriteAddedEvent.emit(addedTitle)
         }
     }
 

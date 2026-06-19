@@ -13,10 +13,10 @@ import com.example.animepopular.data.local.entity.*
         ReviewEntity::class,
         CacheMetadataEntity::class,
         ReadingProgressEntity::class,
-        ReadingHistoryEntity::class,      // ✅ NEW
+        ReadingHistoryEntity::class,
         ReviewReplyEntity::class
     ],
-    version = 4,                          // ✅ bump version (schema berubah)
+    version = 5,   // ✅ bump: FavoriteEntity.description ditambahkan
     exportSchema = false
 )
 abstract class AnimeDatabase : RoomDatabase() {
@@ -27,7 +27,7 @@ abstract class AnimeDatabase : RoomDatabase() {
     abstract fun reviewDao(): ReviewDao
     abstract fun cacheMetadataDao(): CacheMetadataDao
     abstract fun readingProgressDao(): ReadingProgressDao
-    abstract fun readingHistoryDao(): ReadingHistoryDao   // ✅ NEW
+    abstract fun readingHistoryDao(): ReadingHistoryDao
     abstract fun reviewReplyDao(): ReviewReplyDao
 
     companion object {
@@ -40,7 +40,7 @@ abstract class AnimeDatabase : RoomDatabase() {
                     AnimeDatabase::class.java,
                     "anime_popular_db"
                 )
-                    .fallbackToDestructiveMigration()  // hapus & rebuild saat version naik
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

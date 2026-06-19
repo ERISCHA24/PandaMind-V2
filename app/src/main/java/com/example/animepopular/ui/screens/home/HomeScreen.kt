@@ -35,19 +35,31 @@ fun HomeScreen(
     language: String = "en"
 ) {
     val uiState     by viewModel.uiState.collectAsStateWithLifecycle()
-    // ✅ Real-time favoriteIds dari Room — tidak perlu reload list
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ Tampilkan snackbar saat manga ditambahkan ke favorit
+    LaunchedEffect(Unit) {
+        viewModel.favoriteAddedEvent.collect { title ->
+            val message = if (language == "id")
+                "\"$title\" ditambahkan ke Favorit ❤️"
+            else
+                "\"$title\" added to Favorites ❤️"
+            snackbarHostState.showSnackbar(
+                message  = message,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
 
     Scaffold(
         containerColor = BackgroundDark,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "PandaMind",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("PandaMind", color = TextPrimary, fontWeight = FontWeight.Bold)
                 },
                 actions = {
                     IconButton(onClick = onNavigateToLanguage) {
@@ -59,9 +71,7 @@ fun HomeScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             item {
@@ -104,7 +114,7 @@ fun HomeScreen(
                             manga = manga,
                             onDetailClick = { onNavigateToDetail(manga.id) },
                             onFavoriteToggle = { viewModel.toggleFavorite(manga) },
-                            isFavoriteOverride = manga.id in favoriteIds  // ✅
+                            isFavoriteOverride = manga.id in favoriteIds
                         )
                     }
                 }
@@ -114,16 +124,9 @@ fun HomeScreen(
 }
 
 @Composable
-private fun QuickActionRow(
-    language: String,
-    onGenre: () -> Unit,
-    onNews: () -> Unit,
-    onSchedule: () -> Unit
-) {
+private fun QuickActionRow(language: String, onGenre: () -> Unit, onNews: () -> Unit, onSchedule: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -167,10 +170,7 @@ private fun MangaCarousel(
     Column {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .padding(horizontal = 12.dp)
+            modifier = Modifier.fillMaxWidth().height(200.dp).padding(horizontal = 12.dp)
         ) { page ->
             CarouselMangaCard(
                 manga = mangaList[page],
@@ -179,9 +179,7 @@ private fun MangaCarousel(
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.Center
         ) {
             repeat(mangaList.size) { index ->
