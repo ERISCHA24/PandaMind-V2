@@ -9,9 +9,9 @@ sealed class Screen(val route: String) {
     data object Home        : Screen("home")
     data object Search      : Screen("search")
     data object Favorites   : Screen("favorites")
-    data object TopRated    : Screen("top_rated")   // ✅ dikembalikan ke bottom nav
+    data object TopRated    : Screen("top_rated")
     data object Profile     : Screen("profile")
-    data object History     : Screen("history")     // tetap ada sebagai route, tapi bukan bottom nav
+    data object History     : Screen("history")
     data object Detail      : Screen("detail/{mangaId}") {
         fun createRoute(mangaId: String) = "detail/$mangaId"
     }
@@ -23,18 +23,30 @@ sealed class Screen(val route: String) {
     data object Settings    : Screen("settings")
     data object About       : Screen("about")
     data object Language    : Screen("language")
-    data object ChapterList : Screen("chapter_list/{mangaId}/{mangaTitle}") {
-        fun createRoute(mangaId: String, mangaTitle: String) =
-            "chapter_list/$mangaId/${mangaTitle.encodeForRoute()}"
+
+    // ✅ NEW — coverUrl ditambahkan agar bisa diteruskan ke Reader
+    data object ChapterList : Screen("chapter_list/{mangaId}/{mangaTitle}/{coverUrl}") {
+        fun createRoute(mangaId: String, mangaTitle: String, coverUrl: String) =
+            "chapter_list/$mangaId/${mangaTitle.encodeForRoute()}/${coverUrl.encodeCoverForRoute()}"
     }
-    data object Reader      : Screen("reader/{chapterId}/{mangaId}/{chapterTitle}") {
-        fun createRoute(chapterId: String, mangaId: String, chapterTitle: String) =
-            "reader/$chapterId/$mangaId/${chapterTitle.encodeForRoute()}"
+
+    // ✅ NEW — mangaTitle & coverUrl ditambahkan agar History bisa terisi
+    data object Reader      : Screen("reader/{chapterId}/{mangaId}/{chapterTitle}/{mangaTitle}/{coverUrl}") {
+        fun createRoute(
+            chapterId: String, mangaId: String, chapterTitle: String,
+            mangaTitle: String, coverUrl: String
+        ) = "reader/$chapterId/$mangaId/${chapterTitle.encodeForRoute()}/" +
+                "${mangaTitle.encodeForRoute()}/${coverUrl.encodeCoverForRoute()}"
     }
 }
 
 fun String.encodeForRoute(): String = java.net.URLEncoder.encode(this, "UTF-8")
 fun String.decodeFromRoute(): String = java.net.URLDecoder.decode(this, "UTF-8")
+
+// ✅ NEW — coverUrl bisa kosong; pakai sentinel "none" agar tidak membuat
+//    segmen path kosong ("//") yang berisiko gagal dicocokkan oleh NavHost
+fun String.encodeCoverForRoute(): String = if (isBlank()) "none" else encodeForRoute()
+fun String.decodeCoverFromRoute(): String = if (this == "none") "" else decodeFromRoute()
 
 data class BottomNavItem(
     val screen: Screen,
@@ -43,7 +55,6 @@ data class BottomNavItem(
     val labelId: String
 )
 
-// ✅ TopRated kembali ke posisi semula, History dihapus dari bottom nav
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Home,      "Home",     Icons.Filled.Home,     "home"),
     BottomNavItem(Screen.Search,    "Search",   Icons.Filled.Search,   "search"),

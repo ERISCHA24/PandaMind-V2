@@ -138,6 +138,7 @@ fun HistoryScreen(
                 emoji = "📖",
                 language = language,
                 onNavigateToLogin = onNavigateToLogin,
+                showSignInButton = false,   // ✅ NEW — tombol disembunyikan
                 modifier = Modifier.padding(padding)
             )
             return@Scaffold
@@ -241,6 +242,7 @@ private fun HistoryCard(
 
             // ── Info ────────────────────────────────────────────────────────────
             Column(Modifier.weight(1f)) {
+                // Judul manga
                 Text(
                     text = entry.title,
                     color = TextPrimary, fontWeight = FontWeight.Bold,
@@ -248,45 +250,41 @@ private fun HistoryCard(
                     maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
 
-                if (entry.lastChapterTitle.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Filled.BookmarkAdded, contentDescription = null,
-                            tint = AccentColor, modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = entry.lastChapterTitle,
-                            color = AccentColor,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Spacer(Modifier.height(2.dp))
-                }
-
-                // Total chapters read
+                // ✅ Judul chapter terakhir dibaca (menggantikan jumlah chapter dibaca)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Filled.MenuBook, contentDescription = null,
+                        Icons.Filled.BookmarkAdded, contentDescription = null,
+                        tint = AccentColor, modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = entry.lastChapterTitle.ifBlank {
+                            if (language == "id") "Belum ada chapter" else "No chapter yet"
+                        },
+                        color = AccentColor,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                // ✅ Tanggal + jam terakhir dibaca
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.Schedule, contentDescription = null,
                         tint = TextSecondary, modifier = Modifier.size(13.dp)
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "${entry.totalChaptersRead} ${if (language == "id") "chapter dibaca" else "chapters read"}",
-                        color = TextSecondary, style = MaterialTheme.typography.labelSmall
+                        text = sdf.format(Date(entry.lastReadAt)),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
-
-                Spacer(Modifier.height(4.dp))
-
-                Text(
-                    text = sdf.format(Date(entry.lastReadAt)),
-                    color = TextSecondary.copy(0.7f),
-                    fontSize = 10.sp
-                )
 
                 Spacer(Modifier.height(8.dp))
 

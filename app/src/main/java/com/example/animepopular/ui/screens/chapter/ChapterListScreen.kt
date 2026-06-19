@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.animepopular.model.Chapter
+import com.example.animepopular.model.toChapterLabel
 import com.example.animepopular.model.ReadingProgress
 import com.example.animepopular.ui.components.EmptyContent
 import com.example.animepopular.ui.components.ErrorContent
@@ -116,7 +117,7 @@ fun ChapterListScreen(
                                 progress = progress,
                                 language = language,
                                 onClick = {
-                                    val label = buildChapterLabel(chapter)
+                                    val label = chapter.toChapterLabel()   // ✅ ganti dari buildChapterLabel(chapter)
                                     onNavigateToReader(chapter.id, label)
                                 }
                             )
@@ -201,7 +202,7 @@ private fun ChapterItem(
 
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = buildChapterLabel(chapter),
+                        text = chapter.toChapterLabel(),   // ✅ ganti dari buildChapterLabel(chapter)
                         color = if (isRead) TextSecondary else TextPrimary,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isRead) FontWeight.Normal else FontWeight.SemiBold
@@ -279,10 +280,4 @@ private fun FilterChipSmall(label: String, selected: Boolean, onClick: () -> Uni
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
-}
-
-private fun buildChapterLabel(chapter: Chapter): String {
-    val vol = chapter.volume?.let { "Vol.$it " } ?: ""
-    val ch  = chapter.chapter?.let { "Ch.$it" } ?: "Oneshot"
-    return "$vol$ch"
 }

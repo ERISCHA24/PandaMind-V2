@@ -43,6 +43,8 @@ fun ReaderScreen(
     chapterId: String,
     mangaId: String,
     chapterTitle: String,
+    mangaTitle: String = "",        // ✅ NEW
+    mangaCoverUrl: String = "",     // ✅ NEW
     onBack: () -> Unit,
     language: String = "en"
 ) {
@@ -53,9 +55,15 @@ fun ReaderScreen(
     val scope       = rememberCoroutineScope()
     var showUi      by remember { mutableStateOf(true) }
 
-    // Load chapter saat pertama masuk
+// Load chapter saat pertama masuk
     LaunchedEffect(chapterId) {
-        viewModel.loadChapter(chapterId, mangaId)
+        viewModel.loadChapter(
+            chapterId     = chapterId,
+            mangaId       = mangaId,
+            mangaTitle    = mangaTitle,
+            coverFileName = mangaCoverUrl.extractCoverFileName(),   // ✅ NEW
+            chapterTitle  = chapterTitle
+        )
     }
 
     // Simpan progress saat keluar dari screen
@@ -405,3 +413,7 @@ private fun MangaPageImage(
         }
     }
 }
+private fun String.extractCoverFileName(): String =
+    substringAfterLast("/")
+        .removeSuffix(".512.jpg")
+        .removeSuffix(".256.jpg")

@@ -32,6 +32,7 @@ fun ProfileScreen(
     val favoriteCount by viewModel.favoriteCount.collectAsStateWithLifecycle()
     val watchedCount  by viewModel.watchedCount.collectAsStateWithLifecycle()
     val reviewCount   by viewModel.reviewCount.collectAsStateWithLifecycle()
+    val isGuest       by viewModel.isGuest.collectAsStateWithLifecycle()
 
     // Dialog konfirmasi logout
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -201,12 +202,22 @@ fun ProfileScreen(
                 shape    = RoundedCornerShape(14.dp),
                 colors   = CardDefaults.cardColors(containerColor = CardBackground)
             ) {
-                SettingsRow(
-                    icon       = Icons.Filled.Logout,
-                    label      = if (language == "id") "Keluar" else "Log Out",
-                    labelColor = MaterialTheme.colorScheme.error,
-                    onClick    = { showLogoutDialog = true }  // ✅ tampilkan dialog dulu
-                )
+                if (isGuest) {
+                    // ✅ Mode Tamu → tampilkan tombol Masuk ke Akun
+                    SettingsRow(
+                        icon       = Icons.Filled.Login,
+                        label      = if (language == "id") "Masuk ke Akun" else "Sign In",
+                        labelColor = AccentColor,
+                        onClick    = onLogout   // langsung navigasi ke Login, tanpa dialog/clear data
+                    )
+                } else {
+                    SettingsRow(
+                        icon       = Icons.Filled.Logout,
+                        label      = if (language == "id") "Keluar" else "Log Out",
+                        labelColor = MaterialTheme.colorScheme.error,
+                        onClick    = { showLogoutDialog = true }  // ✅ tampilkan dialog dulu
+                    )
+                }
             }
 
             Spacer(Modifier.height(80.dp))

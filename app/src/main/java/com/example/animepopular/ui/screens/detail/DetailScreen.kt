@@ -52,7 +52,7 @@ fun DetailScreen(
     viewModel: DetailViewModel,
     mangaId: String,
     onBack: () -> Unit,
-    onNavigateToChapters: (mangaId: String, mangaTitle: String) -> Unit,
+    onNavigateToChapters: (mangaId: String, mangaTitle: String, coverUrl: String) -> Unit,   // ✅ NEW param
     language: String = "en"
 ) {
     val context         = LocalContext.current
@@ -261,7 +261,7 @@ fun DetailScreen(
                             // ── Read Chapters Button ──────────────────────────
                             Spacer(Modifier.height(16.dp))
                             Button(
-                                onClick = { onNavigateToChapters(manga.id, manga.title) },
+                                onClick = { onNavigateToChapters(manga.id, manga.title, manga.coverUrl) },   // ✅ NEW — kirim coverUrl
                                 colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
                                 shape = RoundedCornerShape(24.dp),
                                 modifier = Modifier.fillMaxWidth().height(46.dp)

@@ -81,6 +81,16 @@ data class Chapter(
     val publishedAt: String
 )
 
+// ── Chapter Label Helper ──────────────────────────────────────────────────────
+// ✅ NEW — dipindahkan dari ChapterListScreen.kt agar reusable
+//    (dipakai ulang oleh Reader/History agar formatnya konsisten: "Vol.X Ch.Y")
+
+fun Chapter.toChapterLabel(): String {
+    val vol = volume?.let { "Vol.$it " } ?: ""
+    val ch  = chapter?.let { "Ch.$it" } ?: "Oneshot"
+    return "$vol$ch"
+}
+
 // ── Chapter Page Model ─────────────────────────────────────────────────────────
 
 data class ChapterPages(

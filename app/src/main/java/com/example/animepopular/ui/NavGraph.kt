@@ -42,8 +42,10 @@ fun NavGraph(container: AppContainer) {
     val isGuest    by profileVM.isGuest.collectAsStateWithLifecycle()
 
     fun navigateToLogin() {
+        profileVM.resetLoginState()          // ✅ NEW — bersihkan state lama (GuestMode/Success/dll)
         navController.navigate(Screen.Login.route) {
             popUpTo(0) { inclusive = true }
+            launchSingleTop = true
         }
     }
 
@@ -174,9 +176,8 @@ fun NavGraph(container: AppContainer) {
                     viewModel             = profileVM,
                     onNavigateToSettings  = { navController.navigate(Screen.Settings.route) },
                     onNavigateToAbout     = { navController.navigate(Screen.About.route) },
-                    // ✅ klik "Reading History" di Profile → buka HistoryScreen
                     onNavigateToHistory   = { navController.navigate(Screen.History.route) },
-                    onLogout              = { navigateToLogin() },
+                    onLogout              = { navigateToLogin() },   // ✅ langsung ke LoginScreen.kt
                     language              = language
                 )
             }
@@ -195,7 +196,7 @@ fun NavGraph(container: AppContainer) {
                 )
             }
 
-            // ── Detail ────────────────────────────────────────────────────────
+// ── Detail ────────────────────────────────────────────────────────
             composable(
                 route     = Screen.Detail.route,
                 arguments = listOf(navArgument("mangaId") { type = NavType.StringType })
@@ -206,8 +207,8 @@ fun NavGraph(container: AppContainer) {
                     viewModel            = vm,
                     mangaId              = mangaId,
                     onBack               = { navController.popBackStack() },
-                    onNavigateToChapters = { id, title ->
-                        navController.navigate(Screen.ChapterList.createRoute(id, title))
+                    onNavigateToChapters = { id, title, coverUrl ->                       // ✅ NEW — terima coverUrl
+                        navController.navigate(Screen.ChapterList.createRoute(id, title, coverUrl))
                     },
                     language             = language
                 )
@@ -255,35 +256,42 @@ fun NavGraph(container: AppContainer) {
                 LanguageScreen(viewModel = profileVM, onBack = { navController.popBackStack() })
             }
 
-            // ── Chapter List ──────────────────────────────────────────────────
+// ── Chapter List ──────────────────────────────────────────────────
             composable(
                 route     = Screen.ChapterList.route,
                 arguments = listOf(
                     navArgument("mangaId")    { type = NavType.StringType },
-                    navArgument("mangaTitle") { type = NavType.StringType }
+                    navArgument("mangaTitle") { type = NavType.StringType },
+                    navArgument("coverUrl")   { type = NavType.StringType }               // ✅ NEW arg
                 )
             ) { backStack ->
                 val mangaId    = backStack.arguments?.getString("mangaId")    ?: return@composable
                 val mangaTitle = backStack.arguments?.getString("mangaTitle")?.decodeFromRoute() ?: ""
+                val coverUrl   = backStack.arguments?.getString("coverUrl")?.decodeCoverFromRoute() ?: ""   // ✅ NEW
                 val vm: ChapterListViewModel = viewModel(factory = container.chapterListFactory(mangaId))
                 ChapterListScreen(
                     viewModel          = vm,
                     mangaTitle         = mangaTitle,
                     onNavigateToReader = { chapterId, chapterTitle ->
-                        navController.navigate(Screen.Reader.createRoute(chapterId, mangaId, chapterTitle))
+                        // ✅ NEW — teruskan mangaTitle & coverUrl yang sudah ada di scope ini
+                        navController.navigate(
+                            Screen.Reader.createRoute(chapterId, mangaId, chapterTitle, mangaTitle, coverUrl)
+                        )
                     },
                     onBack             = { navController.popBackStack() },
                     language           = language
                 )
             }
 
-            // ── Reader ────────────────────────────────────────────────────────
+// ── Reader ────────────────────────────────────────────────────────
             composable(
                 route     = Screen.Reader.route,
                 arguments = listOf(
                     navArgument("chapterId")    { type = NavType.StringType },
                     navArgument("mangaId")      { type = NavType.StringType },
-                    navArgument("chapterTitle") { type = NavType.StringType }
+                    navArgument("chapterTitle") { type = NavType.StringType },
+                    navArgument("mangaTitle")   { type = NavType.StringType },             // ✅ NEW arg
+                    navArgument("coverUrl")     { type = NavType.StringType }              // ✅ NEW arg
                 ),
                 enterTransition    = { fadeIn(tween(200)) },
                 exitTransition     = { fadeOut(tween(200)) },
@@ -293,14 +301,18 @@ fun NavGraph(container: AppContainer) {
                 val chapterId    = backStack.arguments?.getString("chapterId")    ?: return@composable
                 val mangaId      = backStack.arguments?.getString("mangaId")      ?: return@composable
                 val chapterTitle = backStack.arguments?.getString("chapterTitle")?.decodeFromRoute() ?: ""
+                val mangaTitle   = backStack.arguments?.getString("mangaTitle")?.decodeFromRoute() ?: ""      // ✅ NEW
+                val coverUrl     = backStack.arguments?.getString("coverUrl")?.decodeCoverFromRoute() ?: ""   // ✅ NEW
                 val vm: ReaderViewModel = viewModel(factory = container.readerViewModelFactory)
                 ReaderScreen(
-                    viewModel    = vm,
-                    chapterId    = chapterId,
-                    mangaId      = mangaId,
-                    chapterTitle = chapterTitle,
-                    onBack       = { navController.popBackStack() },
-                    language     = language
+                    viewModel     = vm,
+                    chapterId     = chapterId,
+                    mangaId       = mangaId,
+                    chapterTitle  = chapterTitle,
+                    mangaTitle    = mangaTitle,      // ✅ NEW
+                    mangaCoverUrl = coverUrl,        // ✅ NEW
+                    onBack        = { navController.popBackStack() },
+                    language      = language
                 )
             }
         }

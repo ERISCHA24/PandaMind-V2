@@ -27,6 +27,7 @@ fun GuestGateScreen(
     emoji: String = "🔒",
     language: String = "en",
     onNavigateToLogin: () -> Unit,
+    showSignInButton: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -99,25 +100,29 @@ fun GuestGateScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            Button(
-                onClick = onNavigateToLogin,
-                colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
-                shape = RoundedCornerShape(50.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Icon(
-                    Icons.Filled.Login,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = if (language == "id") "Masuk ke Akun" else "Sign In",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+            if (showSignInButton) {
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = onNavigateToLogin,
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentColor),
+                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (language == "id") "Masuk ke Akun" else "Sign In",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
     }

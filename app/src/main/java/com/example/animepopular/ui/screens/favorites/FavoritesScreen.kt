@@ -65,6 +65,7 @@ fun FavoritesScreen(
                 emoji = "❤️",
                 language = language,
                 onNavigateToLogin = onNavigateToLogin,
+                showSignInButton = false,   // ✅ NEW — tombol disembunyikan
                 modifier = Modifier.padding(padding)
             )
             return@Scaffold
