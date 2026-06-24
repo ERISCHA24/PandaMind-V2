@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll([
+        'mangaId', 'userId', 'username', 'reviewText', 'rating', 'timestamp'
+      ]) && request.resource.data.reviewText is string
+        && request.resource.data.reviewText.size() > 0
+        && request.resource.data.reviewText.size() <= 2000;
+      allow update, delete: if true;
+    }
+
+    match /replies/{replyId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll([
+        'reviewId', 'mangaId', 'userId', 'username', 'replyText', 'timestamp'
+      ]) && request.resource.data.replyText is string
+        && request.resource.data.replyText.size() > 0
+        && request.resource.data.replyText.size() <= 1000;
+      allow update, delete: if true;
+    }
+  }
+}

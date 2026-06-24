@@ -126,7 +126,7 @@ fun ReviewEntity.toDomain(): Review {
         mapperJson.decodeFromString<List<String>>(imagePaths)
     } catch (e: Exception) { emptyList() }
     return Review(
-        id          = id,
+        id          = id.toString(),
         mangaId     = mangaId,
         userId      = userId,
         username    = username,
@@ -139,7 +139,7 @@ fun ReviewEntity.toDomain(): Review {
 }
 
 fun Review.toEntity() = ReviewEntity(
-    id          = id,
+    id          = id.toLongOrNull() ?: 0L,
     mangaId     = mangaId,
     userId      = userId,
     username    = username,

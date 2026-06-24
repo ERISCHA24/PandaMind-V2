@@ -33,12 +33,17 @@ object ImageUtil {
 
     private fun getExtension(context: Context, uri: Uri): String {
         val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
-        return when {
-            mimeType.contains("gif")  -> "gif"
-            mimeType.contains("png")  -> "png"
-            mimeType.contains("webp") -> "webp"
-            else -> "jpg"
-        }
+        return extensionFromMime(mimeType)
+    }
+
+    fun getExtensionFromUri(context: Context, uri: Uri): String =
+        getExtension(context, uri)
+
+    private fun extensionFromMime(mimeType: String): String = when {
+        mimeType.contains("gif")  -> "gif"
+        mimeType.contains("png")  -> "png"
+        mimeType.contains("webp") -> "webp"
+        else -> "jpg"
     }
 
     /**

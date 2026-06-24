@@ -37,6 +37,8 @@ class AppContainer(context: Context) {
         reviewReplyDao = database.reviewReplyDao()
     )
 
+    val reviewRepository = ReviewRepository()
+
     val authRepository = AuthRepository(
         authService = authService,
         preferences = preferences
@@ -52,11 +54,11 @@ class AppContainer(context: Context) {
     // ── ViewModel Factories ───────────────────────────────────────────────────
     val homeViewModelFactory      = HomeViewModel.Factory(mangaRepository, favoritesRepository, preferences)
     val searchViewModelFactory    = SearchViewModel.Factory(mangaRepository, favoritesRepository, preferences)
-    val detailViewModelFactory    = DetailViewModel.Factory(mangaRepository, favoritesRepository, preferences)
+    val detailViewModelFactory    = DetailViewModel.Factory(mangaRepository, favoritesRepository, reviewRepository, preferences)
     val favoritesViewModelFactory = FavoritesViewModel.Factory(favoritesRepository, preferences)
     val topRatedViewModelFactory  = TopRatedViewModel.Factory(mangaRepository, favoritesRepository, preferences)
     val genreViewModelFactory     = GenreViewModel.Factory(mangaRepository, favoritesRepository, preferences)
-    val profileViewModelFactory   = ProfileViewModel.Factory(preferences, favoritesRepository, authRepository, chapterRepository)
+    val profileViewModelFactory   = ProfileViewModel.Factory(preferences, favoritesRepository, reviewRepository, authRepository, chapterRepository)
     val readerViewModelFactory    = ReaderViewModel.Factory(chapterRepository, preferences)
     val historyViewModelFactory   = HistoryViewModel.Factory(chapterRepository, preferences)
 

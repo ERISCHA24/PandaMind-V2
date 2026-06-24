@@ -200,6 +200,7 @@ sealed class GenreUiState {
 class ProfileViewModel(
     private val preferences: AppPreferences,
     private val favoritesRepository: FavoritesRepository,
+    private val reviewRepository: ReviewRepository,
     private val authRepository: AuthRepository,
     private val chapterRepository: ChapterRepository
 ) : ViewModel() {
@@ -229,7 +230,7 @@ class ProfileViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val reviewCount = userId.flatMapLatest { uid ->
-        favoritesRepository.getTotalReviewCount(uid)
+        reviewRepository.getTotalReviewCount(uid)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val historyCount = userId.flatMapLatest { uid ->
@@ -282,12 +283,13 @@ class ProfileViewModel(
     class Factory(
         private val preferences: AppPreferences,
         private val favoritesRepository: FavoritesRepository,
+        private val reviewRepository: ReviewRepository,
         private val authRepository: AuthRepository,
         private val chapterRepository: ChapterRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>) =
-            ProfileViewModel(preferences, favoritesRepository, authRepository, chapterRepository) as T
+            ProfileViewModel(preferences, favoritesRepository, reviewRepository, authRepository, chapterRepository) as T
     }
 }
 

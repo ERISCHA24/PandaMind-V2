@@ -131,7 +131,7 @@ fun DetailScreen(
     }
 
     // Delete confirmation dialog
-    var reviewToDelete by remember { mutableStateOf<Long?>(null) }
+    var reviewToDelete by remember { mutableStateOf<String?>(null) }
     if (reviewToDelete != null) {
         AlertDialog(
             onDismissRequest = { reviewToDelete = null },
@@ -288,13 +288,16 @@ fun DetailScreen(
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(
-                                if (language == "id") "👥 Review Pengguna" else "👥 User Reviews",
+                                if (language == "id") "💬 Chat Global" else "💬 Global Chat",
                                 color      = TextPrimary,
                                 style      = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "${reviews.size} ${if (language == "id") "review" else "reviews"}",
+                                if (language == "id")
+                                    "${reviews.size} pesan · sinkron real-time via Firestore"
+                                else
+                                    "${reviews.size} messages · real-time via Firestore",
                                 color    = TextSecondary,
                                 style    = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
@@ -530,7 +533,7 @@ private fun ReviewCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onReply: () -> Unit,
-    onDeleteReply: (Long) -> Unit
+    onDeleteReply: (String) -> Unit
 ) {
     val context = LocalContext.current
     val sdf = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
@@ -573,12 +576,18 @@ private fun ReviewCard(
                 Spacer(Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(allMedia) { path ->
-                        val file = File(path)
-                        if (file.exists()) {
+                        val model: Any? = when {
+                            path.startsWith("http", ignoreCase = true) -> path
+                            else -> {
+                                val file = File(path)
+                                if (file.exists()) file else null
+                            }
+                        }
+                        if (model != null) {
                             val isGif = ImageUtil.isGif(path)
                             Box {
                                 AsyncImage(
-                                    model = ImageRequest.Builder(context).data(file).crossfade(true).build(),
+                                    model = ImageRequest.Builder(context).data(model).crossfade(true).build(),
                                     imageLoader = imageLoader,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
@@ -691,9 +700,15 @@ private fun EditReviewSection(
                 color = TextSecondary, style = MaterialTheme.typography.labelSmall)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 4.dp)) {
                 items(existingPaths) { path ->
-                    val f = File(path)
-                    if (f.exists()) {
-                        AsyncImage(model = ImageRequest.Builder(context).data(f).build(),
+                    val model: Any? = when {
+                        path.startsWith("http", ignoreCase = true) -> path
+                        else -> {
+                            val f = File(path)
+                            if (f.exists()) f else null
+                        }
+                    }
+                    if (model != null) {
+                        AsyncImage(model = ImageRequest.Builder(context).data(model).build(),
                             imageLoader = gifLoader, contentDescription = null, contentScale = ContentScale.Crop,
                             modifier = Modifier.size(60.dp).clip(RoundedCornerShape(8.dp)))
                     }

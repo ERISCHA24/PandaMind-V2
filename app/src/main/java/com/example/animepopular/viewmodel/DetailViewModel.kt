@@ -9,11 +9,11 @@ import com.example.animepopular.data.preferences.AppPreferences
 import com.example.animepopular.data.remote.dto.ApiResult
 import com.example.animepopular.data.repository.FavoritesRepository
 import com.example.animepopular.data.repository.MangaRepository
+import com.example.animepopular.data.repository.ReviewRepository
 import com.example.animepopular.model.Manga
 import com.example.animepopular.model.Review
 import com.example.animepopular.model.ReviewReply
 import com.example.animepopular.util.Constants
-import com.example.animepopular.util.ImageUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,6 +23,7 @@ import timber.log.Timber
 class DetailViewModel(
     private val mangaRepository: MangaRepository,
     private val favoritesRepository: FavoritesRepository,
+    private val reviewRepository: ReviewRepository,
     private val preferences: AppPreferences
 ) : ViewModel() {
 
@@ -42,7 +43,6 @@ class DetailViewModel(
     private val _isFavorite = MutableStateFlow(false)
     val isFavorite: StateFlow<Boolean> = _isFavorite.asStateFlow()
 
-    // ✅ favoriteAddedEvent — untuk snackbar di DetailScreen
     private val _favoriteAddedEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val favoriteAddedEvent: SharedFlow<String> = _favoriteAddedEvent.asSharedFlow()
 
@@ -71,20 +71,21 @@ class DetailViewModel(
     val editGifUri: StateFlow<Uri?> = _editGifUri.asStateFlow()
 
     // ── Reply Form ─────────────────────────────────────────────────────────────
-    private val _replyingToReviewId = MutableStateFlow<Long?>(null)
-    val replyingToReviewId: StateFlow<Long?> = _replyingToReviewId.asStateFlow()
+    private val _replyingToReviewId = MutableStateFlow<String?>(null)
+    val replyingToReviewId: StateFlow<String?> = _replyingToReviewId.asStateFlow()
     private val _replyUsername  = MutableStateFlow("")
     val replyUsername: StateFlow<String> = _replyUsername
     private val _replyText      = MutableStateFlow("")
     val replyText: StateFlow<String> = _replyText
 
-    private val _repliesMap = MutableStateFlow<Map<Long, List<ReviewReply>>>(emptyMap())
-    val repliesMap: StateFlow<Map<Long, List<ReviewReply>>> = _repliesMap.asStateFlow()
+    private val _repliesMap = MutableStateFlow<Map<String, List<ReviewReply>>>(emptyMap())
+    val repliesMap: StateFlow<Map<String, List<ReviewReply>>> = _repliesMap.asStateFlow()
 
     private val _submitStatus = MutableStateFlow<ReviewSubmitStatus>(ReviewSubmitStatus.Idle)
     val reviewSubmitStatus: StateFlow<ReviewSubmitStatus> = _submitStatus.asStateFlow()
 
     private var currentMangaId: String = ""
+    private val replyJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
 
     // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -99,17 +100,28 @@ class DetailViewModel(
             }.collect { _isFavorite.value = it }
         }
         viewModelScope.launch {
-            favoritesRepository.getReviewsForManga(mangaId).collect { reviews ->
+            reviewRepository.getReviewsForManga(mangaId).collect { reviews ->
                 _reviews.value = reviews
-                reviews.forEach { loadReplies(it.id) }
+                syncReplyListeners(reviews)
             }
         }
     }
 
-    private fun loadReplies(reviewId: Long) {
-        viewModelScope.launch {
-            favoritesRepository.getRepliesForReview(reviewId).collect { replies ->
-                _repliesMap.value = _repliesMap.value.toMutableMap().also { it[reviewId] = replies }
+    private fun syncReplyListeners(reviews: List<Review>) {
+        val activeIds = reviews.map { it.id }.toSet()
+        replyJobs.keys.filter { it !in activeIds }.forEach { id ->
+            replyJobs.remove(id)?.cancel()
+            _repliesMap.value = _repliesMap.value - id
+        }
+        reviews.forEach { review ->
+            if (review.id !in replyJobs) {
+                replyJobs[review.id] = viewModelScope.launch {
+                    reviewRepository.getRepliesForReview(review.id).collect { replies ->
+                        _repliesMap.value = _repliesMap.value.toMutableMap().also {
+                            it[review.id] = replies
+                        }
+                    }
+                }
             }
         }
     }
@@ -120,7 +132,6 @@ class DetailViewModel(
         viewModelScope.launch {
             val m = (_manga.value as? ApiResult.Success)?.data ?: return@launch
             val addedTitle = favoritesRepository.toggleFavorite(m, userId.value)
-            // ✅ emit snackbar hanya saat ditambahkan
             if (addedTitle != null) {
                 _favoriteAddedEvent.emit(addedTitle)
             }
@@ -145,23 +156,32 @@ class DetailViewModel(
 
         viewModelScope.launch {
             _submitStatus.value = ReviewSubmitStatus.Loading
-            val savedImages = _selectedImageUris.value.mapNotNull {
-                runCatching { ImageUtil.copyUriToInternalStorage(context, it) }.getOrNull()
+            val result = reviewRepository.addReview(
+                context = context,
+                review = Review(
+                    mangaId = currentMangaId,
+                    userId = userId.value,
+                    username = username,
+                    reviewText = text,
+                    rating = _reviewRating.value,
+                    timestamp = System.currentTimeMillis()
+                ),
+                imageUris = _selectedImageUris.value,
+                gifUri = _selectedGifUri.value
+            )
+            if (result.isSuccess) {
+                _reviewUsername.value = ""
+                _reviewText.value = ""
+                _reviewRating.value = 7f
+                _selectedImageUris.value = emptyList()
+                _selectedGifUri.value = null
+                _submitStatus.value = ReviewSubmitStatus.Success
+            } else {
+                Timber.e(result.exceptionOrNull(), "Failed to submit review")
+                _submitStatus.value = ReviewSubmitStatus.Error(
+                    result.exceptionOrNull()?.message ?: "Failed to send review"
+                )
             }
-            val savedGif = _selectedGifUri.value?.let {
-                runCatching { ImageUtil.copyUriToInternalStorage(context, it, isGif = true) }.getOrNull()
-            }
-            favoritesRepository.addReview(Review(
-                mangaId = currentMangaId,
-                userId  = userId.value,
-                username = username, reviewText = text,
-                rating = _reviewRating.value,
-                timestamp = System.currentTimeMillis(),
-                imagePaths = savedImages, gifPath = savedGif
-            ))
-            _reviewUsername.value = ""; _reviewText.value = ""; _reviewRating.value = 7f
-            _selectedImageUris.value = emptyList(); _selectedGifUri.value = null
-            _submitStatus.value = ReviewSubmitStatus.Success
         }
     }
 
@@ -169,7 +189,7 @@ class DetailViewModel(
 
     fun startEditing(review: Review) {
         _editingReview.value = review
-        _editText.value  = review.reviewText
+        _editText.value = review.reviewText
         _editRating.value = review.rating
         _editImageUris.value = emptyList()
         _editGifUri.value = null
@@ -190,32 +210,40 @@ class DetailViewModel(
 
         viewModelScope.launch {
             _submitStatus.value = ReviewSubmitStatus.Loading
-            val existingPaths = review.imagePaths.toMutableList()
-            val newPaths = _editImageUris.value.mapNotNull {
-                runCatching { ImageUtil.copyUriToInternalStorage(context, it) }.getOrNull()
+            val result = reviewRepository.editReview(
+                context = context,
+                reviewId = review.id,
+                mangaId = review.mangaId,
+                newText = text,
+                newRating = _editRating.value,
+                existingImageUrls = review.imagePaths,
+                newImageUris = _editImageUris.value,
+                newGifUri = _editGifUri.value,
+                existingGifUrl = review.gifPath
+            )
+            if (result.isSuccess) {
+                _editingReview.value = null
+                _submitStatus.value = ReviewSubmitStatus.Success
+            } else {
+                _submitStatus.value = ReviewSubmitStatus.Error(
+                    result.exceptionOrNull()?.message ?: "Failed to update review"
+                )
             }
-            existingPaths.addAll(newPaths)
-            val gifPath = _editGifUri.value?.let {
-                runCatching { ImageUtil.copyUriToInternalStorage(context, it, isGif = true) }.getOrNull()
-            } ?: review.gifPath
-
-            favoritesRepository.editReview(review.id, text, _editRating.value, existingPaths, gifPath)
-            _editingReview.value = null
-            _submitStatus.value = ReviewSubmitStatus.Success
         }
     }
 
-    fun deleteReview(reviewId: Long) {
-        viewModelScope.launch { favoritesRepository.deleteReview(reviewId) }
+    fun deleteReview(reviewId: String) {
+        viewModelScope.launch { reviewRepository.deleteReview(reviewId) }
     }
 
     // ── Reply ──────────────────────────────────────────────────────────────────
 
-    fun startReply(reviewId: Long) {
+    fun startReply(reviewId: String) {
         _replyingToReviewId.value = reviewId
         _replyUsername.value = ""
         _replyText.value = ""
     }
+
     fun cancelReply() { _replyingToReviewId.value = null }
     fun onReplyUsernameChange(v: String) { _replyUsername.value = v }
     fun onReplyTextChange(v: String)     { _replyText.value = v }
@@ -228,30 +256,49 @@ class DetailViewModel(
         if (text.isBlank())     { _submitStatus.value = ReviewSubmitStatus.Error("Reply cannot be empty"); return }
 
         viewModelScope.launch {
-            favoritesRepository.addReply(ReviewReply(
-                reviewId = reviewId, mangaId = currentMangaId,
-                userId = userId.value, username = username, replyText = text
-            ))
-            _replyingToReviewId.value = null
-            _replyUsername.value = ""; _replyText.value = ""
-            _submitStatus.value = ReviewSubmitStatus.Success
+            val result = reviewRepository.addReply(
+                ReviewReply(
+                    reviewId = reviewId,
+                    mangaId = currentMangaId,
+                    userId = userId.value,
+                    username = username,
+                    replyText = text
+                )
+            )
+            if (result.isSuccess) {
+                _replyingToReviewId.value = null
+                _replyUsername.value = ""
+                _replyText.value = ""
+                _submitStatus.value = ReviewSubmitStatus.Success
+            } else {
+                _submitStatus.value = ReviewSubmitStatus.Error(
+                    result.exceptionOrNull()?.message ?: "Failed to send reply"
+                )
+            }
         }
     }
 
-    fun deleteReply(replyId: Long) {
-        viewModelScope.launch { favoritesRepository.deleteReply(replyId) }
+    fun deleteReply(replyId: String) {
+        viewModelScope.launch { reviewRepository.deleteReply(replyId) }
     }
 
     fun resetSubmitStatus() { _submitStatus.value = ReviewSubmitStatus.Idle }
 
+    override fun onCleared() {
+        super.onCleared()
+        replyJobs.values.forEach { it.cancel() }
+        replyJobs.clear()
+    }
+
     class Factory(
         private val mangaRepository: MangaRepository,
         private val favoritesRepository: FavoritesRepository,
+        private val reviewRepository: ReviewRepository,
         private val preferences: AppPreferences
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>) =
-            DetailViewModel(mangaRepository, favoritesRepository, preferences) as T
+            DetailViewModel(mangaRepository, favoritesRepository, reviewRepository, preferences) as T
     }
 }
 

@@ -23,9 +23,9 @@ data class Manga(
 // ── Review Domain Model ────────────────────────────────────────────────────────
 
 data class Review(
-    val id: Long = 0,
+    val id: String = "",
     val mangaId: String,
-    val userId: String = "",       // ✅ NEW
+    val userId: String = "",
     val username: String,
     val reviewText: String,
     val rating: Float,
@@ -136,10 +136,10 @@ data class ReadingHistory(
 // ── Reply (linked to Review) ──────────────────────────────────────────────────
 
 data class ReviewReply(
-    val id: Long = 0,
-    val reviewId: Long,
+    val id: String = "",
+    val reviewId: String,
     val mangaId: String,
-    val userId: String = "",       // ✅ NEW
+    val userId: String = "",
     val username: String,
     val replyText: String,
     val timestamp: Long = System.currentTimeMillis()

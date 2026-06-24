@@ -181,26 +181,26 @@ private val extJson = Json { ignoreUnknownKeys = true }
 private fun ReviewEntity.toReviewDomain(): Review {
     val paths = try { extJson.decodeFromString<List<String>>(imagePaths) } catch (e: Exception) { emptyList() }
     return Review(
-        id = id, mangaId = mangaId, userId = userId, username = username,
+        id = id.toString(), mangaId = mangaId, userId = userId, username = username,
         reviewText = reviewText, rating = rating,
         timestamp = timestamp, imagePaths = paths, gifPath = gifPath
     )
 }
 
 private fun Review.toReviewEntity() = ReviewEntity(
-    id = id, mangaId = mangaId, userId = userId, username = username,
+    id = id.toLongOrNull() ?: 0L, mangaId = mangaId, userId = userId, username = username,
     reviewText = reviewText, rating = rating, timestamp = timestamp,
     imagePaths = extJson.encodeToString(imagePaths), gifPath = gifPath
 )
 
 private fun ReviewReplyEntity.toReplyDomain() = ReviewReply(
-    id = id, reviewId = reviewId, mangaId = mangaId,
+    id = id.toString(), reviewId = reviewId.toString(), mangaId = mangaId,
     userId = userId, username = username,
     replyText = replyText, timestamp = timestamp
 )
 
 private fun ReviewReply.toReplyEntity() = ReviewReplyEntity(
-    id = id, reviewId = reviewId, mangaId = mangaId,
+    id = id.toLongOrNull() ?: 0L, reviewId = reviewId.toLongOrNull() ?: 0L, mangaId = mangaId,
     userId = userId, username = username,
     replyText = replyText, timestamp = timestamp
 )
